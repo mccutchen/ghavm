@@ -1,0 +1,30 @@
+---
+# testing actions already fully hash-pinned.
+#
+# note that when running `ghavm pin` nothing should change in this file.
+name: already-pinned
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: absolute latest release
+        uses: mccutchen/ghavm-test-repo@75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 # v4.2.3
+        with:
+          foo: ${{bar}}
+
+      - name: same major version as latest, but a few releases behind
+        uses: mccutchen/ghavm-test-repo@e31a34957100bbd9e4ef4119114615b944a3a5b1 # v4.1.1
+
+      - name: same action and hash as previous step, should use cache
+        uses: mccutchen/ghavm-test-repo@e31a34957100bbd9e4ef4119114615b944a3a5b1 # v4.1.1
+
+      - name: step without a versioned action at all
+        run: make test
+
+      - name: multiple major versions behind
+        uses: mccutchen/ghavm-test-repo@4ac411f47580d9304c9410d997568adbe7651f35 # v1.1.2
+        if: ${{ matrix.go-version == 'stable' }}

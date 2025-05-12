@@ -1,0 +1,34 @@
+query GetVersionTagsForRef($owner: String!, $repo: String!, $cursor: String) {
+    repository(owner: $owner, name: $repo) {
+        refs(
+            # only interested in tags
+            refPrefix: "refs/tags/"
+            # only intereted in tags that start with "v" and therefore *might*
+            # be semver tags (though we'll still need to filter out non-semver
+            # tags in each response)
+            query: "v"
+            first: 100
+            after: $cursor
+        ) {
+            nodes {
+                name
+                target {
+                    ... on Commit {
+                        oid
+                    }
+                    ... on Tag {
+                        target {
+                            ... on Commit {
+                                oid
+                            }
+                        }
+                    }
+                }
+            }
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+        }
+    }
+}

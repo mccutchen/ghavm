@@ -1,0 +1,24 @@
+query GetRepositoryReleases($owner: String!, $repo: String!, $cursor: String) {
+    repository(owner: $owner, name: $repo) {
+        releases(first: 100, after: $cursor) {
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+            nodes {
+                tag {
+                    target {
+                        oid
+                        ... on Tag {
+                            target {
+                                oid
+                            }
+                        }
+                    }
+                }
+                tagName
+                url
+            }
+        }
+    }
+}

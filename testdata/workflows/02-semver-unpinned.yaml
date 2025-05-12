@@ -1,0 +1,29 @@
+---
+# testing actions written in the "traditional" style, with all refs pointing to
+# (potentially floating) semver-tagged releases.
+name: semver-unpinned
+
+on:
+  push:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: already at exact latest release
+        uses: mccutchen/ghavm-test-repo@v4.2.3
+
+      - name: at latest floating major release
+        uses: mccutchen/ghavm-test-repo@v4
+
+      - name: floating major release behind latest major version
+        uses: mccutchen/ghavm-test-repo@v2
+
+      # make sure we find `- uses:` as first entry (i.e. without `- name:`)
+      - uses: mccutchen/ghavm-test-repo@v3.2.1
+
+      - name: same action and version as previous should use cached results
+        uses: mccutchen/ghavm-test-repo@v3.2.1
+
+      - name: at latest major, with point and minor upgrades available
+        uses: mccutchen/ghavm-test-repo@v4.1.2
