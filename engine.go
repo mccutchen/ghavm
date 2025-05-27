@@ -73,7 +73,7 @@ func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Wri
 	}
 }
 
-// List lists each step in each workfow, with the current action version and
+// List lists each step in each workflow, with the current action version and
 // any available upgrades.
 func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 	if err := e.resolveSteps(ctx, ModeLatest); err != nil {
@@ -163,7 +163,7 @@ func (e *Engine) rewriteWorkflows(ctx context.Context, strategy RewriteStrategy)
 			// figure out which version we're pinning, if any
 			pin := strategy(w, step)
 
-			// if our strategy did not return a valid release, log and contine
+			// if our strategy did not return a valid release, log and continue
 			//
 			// TODO: better diagnostics
 			if !pin.Exists() {
@@ -244,7 +244,7 @@ func chooseUpgrade(step Step, mode PinMode) Release {
 }
 
 // resolveSteps walks the set of workflows and attempts to resolve each step's
-// current version ref to a concrete commit hash and semver tag, and optinally
+// current version ref to a concrete commit hash and semver tag, and optionally
 // fetches its potential upgrade candidates.
 //
 // Each step is mutated in-place as it is resolved.
@@ -271,7 +271,7 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 
 			// don't schedule more than N concurrent tasks
 			if err := sem.Acquire(ctx, 1); err != nil {
-				return fmt.Errorf("engine: failed to aquire semaphore: %w", err)
+				return fmt.Errorf("engine: failed to acquire semaphore: %w", err)
 			}
 			g.Go(func() error {
 				defer sem.Release(1)
@@ -289,7 +289,7 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 	return nil
 }
 
-// resolveStep resolves a signle step's current version ref to a concrete
+// resolveStep resolves a single step's current version ref to a concrete
 // commit hash and semver tag where possible, and optionally fetches potential
 // upgrade candidates.
 //
