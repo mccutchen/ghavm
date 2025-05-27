@@ -799,7 +799,3 @@ type httpResponse struct {
 func okResponse(body string) httpResponse {
 	return httpResponse{http.StatusOK, body}
 }
-
-func errResponse(status int, body string) httpResponse {
-	return httpResponse{status, body}
-}

@@ -24,15 +24,17 @@ import (
 	"github.com/mccutchen/ghavm/internal/slogctx"
 )
 
-type UpgradeMode int
+// PinMode instructs [Engine] how to pin action versions.
+type PinMode int
 
+// Pin modes.
 const (
-	ModeCurrent UpgradeMode = iota
+	ModeCurrent PinMode = iota
 	ModeLatest
 	ModeCompat
 )
 
-func (m UpgradeMode) String() string {
+func (m PinMode) String() string {
 	switch m {
 	case ModeCurrent:
 		return "current"
@@ -41,7 +43,7 @@ func (m UpgradeMode) String() string {
 	case ModeCompat:
 		return "latest compatible"
 	default:
-		panic("invalid UpgradeMode value")
+		panic("invalid PinMode value")
 	}
 }
 
@@ -125,7 +127,7 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 
 // Pin rewrites each workflow's steps from mutable tags/branches to immutable
 // commit hashes.
-func (e *Engine) Pin(ctx context.Context, mode UpgradeMode) error {
+func (e *Engine) Pin(ctx context.Context, mode PinMode) error {
 	if err := e.resolveSteps(ctx, mode); err != nil {
 		return fmt.Errorf("engine: failed to resolve commit refs: %w", err)
 	}
@@ -209,8 +211,8 @@ func (e *Engine) rewriteWorkflows(ctx context.Context, strategy RewriteStrategy)
 // an appropriate release to pin.
 type RewriteStrategy func(Workflow, Step) Release
 
-func rewriteStrategyForMode(mode UpgradeMode) RewriteStrategy {
-	return func(w Workflow, step Step) Release {
+func rewriteStrategyForMode(mode PinMode) RewriteStrategy {
+	return func(_ Workflow, step Step) Release {
 		return chooseUpgrade(step, mode)
 	}
 }
@@ -220,7 +222,7 @@ func rewriteStrategyForMode(mode UpgradeMode) RewriteStrategy {
 //
 // If an expected upgrade candidate was not resolved, default to the current
 // release.
-func chooseUpgrade(step Step, mode UpgradeMode) Release {
+func chooseUpgrade(step Step, mode PinMode) Release {
 	current := step.Action.Release
 	candidates := step.Action.UpgradeCandidates
 	switch mode {
@@ -246,7 +248,7 @@ func chooseUpgrade(step Step, mode UpgradeMode) Release {
 // fetches its potential upgrade candidates.
 //
 // Each step is mutated in-place as it is resolved.
-func (e *Engine) resolveSteps(ctx context.Context, mode UpgradeMode) error {
+func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 	e.log.StartSection("resolving action versions for %d steps across %d workflows ...", e.root.StepCount(), e.root.WorkflowCount())
 	defer e.log.FinishSection("done!")
 
@@ -420,12 +422,13 @@ func (l *Logger) StepError(workflow Workflow, step *Step, err error) {
 	l.stepLog(slog.LevelError, workflow, step, err.Error())
 }
 
+// FinishSection logs a footer line marking the end of a phase.
 func (l *Logger) FinishSection(msg string, args ...any) {
 	l.writeln(boldf(msg, args...))
 	l.stepWritten.Store(false)
 }
 
-func (l *Logger) stepLog(level slog.Level, workflow Workflow, step *Step, msg string, args ...any) {
+func (l *Logger) stepLog(_ slog.Level, workflow Workflow, step *Step, msg string, args ...any) {
 	prefixTmpl := fmt.Sprintf("file=%%-%ds action=%%-%ds → ", l.workflowWidth, l.stepWidth)
 	prefix := fmt.Sprintf(prefixTmpl, filepath.Base(workflow.FilePath), step.Action.Name)
 	msg = fmt.Sprintf(prefix+msg, args...)

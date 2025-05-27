@@ -1,13 +1,17 @@
 package main
 
+// Root is the root of a tree of worfklows and their steps.
 type Root struct {
 	Workflows map[string]Workflow
 }
 
+// WorkflowCount returns the number of workflows under this root.
 func (r Root) WorkflowCount() int {
 	return len(r.Workflows)
 }
 
+// StepCount returns the total number of steps in all workflows
+// under this root.
 func (r Root) StepCount() int {
 	n := 0
 	for _, w := range r.Workflows {

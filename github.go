@@ -18,8 +18,6 @@ import (
 	"github.com/mccutchen/ghavm/internal/slogctx"
 )
 
-const cacheSize = 128
-
 // GitHubClient is a client for GitHub's REST and GraphQL APIs, which exposes
 // the functionality needed to resolve versions, commits, refs.
 type GitHubClient struct {

@@ -88,7 +88,7 @@ func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cli.Command {
 						Aliases: []string{"m"},
 						Usage:   "Upgrade mode, either 'latest' or 'compat'",
 						Value:   "compat",
-						Action: func(ctx context.Context, cmd *cli.Command, val string) error {
+						Action: func(_ context.Context, _ *cli.Command, val string) error {
 							if val != "latest" && val != "compat" {
 								return fmt.Errorf("invalid mode: %s (must be 'latest' or 'compat')", val)
 							}
@@ -148,7 +148,7 @@ func pinOrUpgradeCmd(ctx context.Context, cmd *cli.Command) error {
 	)
 	ctx = newAppContext(ctx, cmd.ErrWriter, chooseLogLevel(cmd.Bool("verbose")))
 
-	var mode UpgradeMode
+	var mode PinMode
 	if cmd.Name == "pin" {
 		mode = ModeCurrent
 	} else {

@@ -16,7 +16,7 @@ import (
 //go:embed testdata/golden/*.outdir
 var goldenDirs embed.FS
 
-func newTestApp(t testing.TB) (app *cli.Command, stdout *bytes.Buffer, stderr *bytes.Buffer) {
+func newTestApp() (app *cli.Command, stdout *bytes.Buffer, stderr *bytes.Buffer) {
 	stdout = &bytes.Buffer{}
 	stderr = &bytes.Buffer{}
 	app = newApp(nil, stdout, stderr)
@@ -40,7 +40,7 @@ func TestIntegrationTests(t *testing.T) {
 		//
 		// t.Parallel()
 
-		app, stdout, _ := newTestApp(t)
+		app, stdout, _ := newTestApp()
 		args := []string{
 			"ghavm-test",
 			"list",
@@ -121,7 +121,7 @@ func TestIntegrationTests(t *testing.T) {
 			args = append(args, testDir)
 			t.Logf("cli args: %v", args)
 
-			app, _, _ := newTestApp(t)
+			app, _, _ := newTestApp()
 			assert.NilError(t, app.Run(context.Background(), args))
 
 			if diff := diffDirs(t, goldenDir, testDir); diff != "" {
@@ -136,9 +136,8 @@ func diffDirs(t testing.TB, a, b string) string {
 	cmd := exec.Command("diff", "-u", "-r", a, b)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
-			// files differ, this is expected
-		} else {
+		// an exit code of 1 from `diff` is expected when the inputs differ
+		if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 1 {
 			t.Errorf("diff command failed: %s", err)
 		}
 	}
@@ -154,9 +153,8 @@ func diffStrings(t testing.TB, a, b string) string {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
-			// files differ, this is expected
-		} else {
+		// an exit code of 1 from `diff` is expected when the inputs differ
+		if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 1 {
 			t.Errorf("diff command failed: %s", err)
 		}
 	}

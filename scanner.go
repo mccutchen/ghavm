@@ -50,6 +50,8 @@ func findWorkflowsInDir(dir string) []string {
 	return files
 }
 
+// ScanWorkflows walks the given files and parses them into a tree of
+// workflows and steps.
 func ScanWorkflows(filePaths []string, targetActions []string) (Root, error) {
 	root := Root{
 		Workflows: make(map[string]Workflow, len(filePaths)),

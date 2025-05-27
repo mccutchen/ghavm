@@ -1,3 +1,5 @@
+// Package slogctx provides a minimal mechanism for passing a [slog.Logger]
+// around in contexts.
 package slogctx
 
 import (
@@ -7,7 +9,7 @@ import (
 
 type ctxKey int
 
-const slogCtxKey = iota
+const slogCtxKey ctxKey = iota
 
 // New creates a new child [context.Context] containing the given [slog.Logger]
 func New(ctx context.Context, logger *slog.Logger) context.Context {
