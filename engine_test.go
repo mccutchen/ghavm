@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"embed"
 	"os"
 	"os/exec"
@@ -10,17 +9,16 @@ import (
 	"testing"
 
 	"github.com/mccutchen/ghavm/internal/testing/assert"
-	"github.com/urfave/cli/v3"
+	"github.com/spf13/cobra"
 )
 
 //go:embed testdata/golden/*.outdir
 var goldenDirs embed.FS
 
-func newTestApp() (app *cli.Command, stdout *bytes.Buffer, stderr *bytes.Buffer) {
+func newTestApp() (app *cobra.Command, stdout *bytes.Buffer, stderr *bytes.Buffer) {
 	stdout = &bytes.Buffer{}
 	stderr = &bytes.Buffer{}
 	app = newApp(nil, stdout, stderr)
-	app.HideHelp = true
 	return
 }
 
@@ -30,23 +28,20 @@ func TestIntegrationTests(t *testing.T) {
 		t.Skipf("set GITHUB_TOKEN to run integration tests")
 	}
 
+	t.Parallel()
 	t.Logf("Note: to update golden tests, run:\n\n    make test-reset-golden-fixtures\n\n")
 
 	// for testing `ghavm list` we just capture stdout and compare it to
 	// a snapshot stored on disk
 	t.Run("ghavm list", func(t *testing.T) {
-		// TODO: work around apparent race condition in urfave/cli/v3 library
-		// and enable parallel tests
-		//
-		// t.Parallel()
+		t.Parallel()
 
 		app, stdout, _ := newTestApp()
-		args := []string{
-			"ghavm-test",
+		app.SetArgs([]string{
 			"list",
 			filepath.Join("testdata", "workflows"),
-		}
-		assert.NilError(t, app.Run(context.Background(), args))
+		})
+		assert.NilError(t, app.Execute())
 
 		goldenPath := filepath.Join("testdata", "golden", "cmd-list.stdout")
 		want, err := os.ReadFile(goldenPath)
@@ -59,7 +54,7 @@ func TestIntegrationTests(t *testing.T) {
 	})
 
 	// for testing `ghavm pin` and `ghavm upgrade`, we need to be able to
-	// write to mutiple files and compare the results.
+	// write to multiple files and compare the results.
 	//
 	// this setup is a wee bit convoluted, but at a high level:
 	//
@@ -104,10 +99,7 @@ func TestIntegrationTests(t *testing.T) {
 	for _, goldenDirName := range goldenDirs {
 		goldenDirName := goldenDirName
 		t.Run("golden/"+goldenDirName, func(t *testing.T) {
-			// TODO: work around apparent race condition in urfave/cli/v3 lib
-			// and enable parallel tests
-			//
-			// t.Parallel()
+			t.Parallel()
 
 			goldenDir := filepath.Join("testdata", "golden", goldenDirName)
 			testDir := filepath.Join(tmpDir, goldenDir)
@@ -117,12 +109,12 @@ func TestIntegrationTests(t *testing.T) {
 			if args == nil {
 				t.Fatalf("no cmd args found for golden dir %s", goldenDirName)
 			}
-			args = append([]string{"ghavm-test"}, args...)
 			args = append(args, testDir)
 			t.Logf("cli args: %v", args)
 
 			app, _, _ := newTestApp()
-			assert.NilError(t, app.Run(context.Background(), args))
+			app.SetArgs(args)
+			assert.NilError(t, app.Execute())
 
 			if diff := diffDirs(t, goldenDir, testDir); diff != "" {
 				t.Fatalf("golden test failed, recursive diff output:\n\n%s\n\n", diff)
