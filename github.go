@@ -375,6 +375,12 @@ func (c *GitHubClient) doGetCommitHashForRef(ctx context.Context, targetRepo str
 		return "", fmt.Errorf("targetRepo must be specified in \"owner/repo\" format, got %q", targetRepo)
 	}
 
+	log := slogctx.From(ctx)
+	log = log.With(
+		"repo", targetRepo,
+		"ref", ref,
+	)
+
 	// Note: we check whether the ref is a (possibly short) commit hash,
 	// branch name, or tag name, in that order.
 	//
@@ -383,29 +389,48 @@ func (c *GitHubClient) doGetCommitHashForRef(ctx context.Context, targetRepo str
 	// early.
 
 	// potentially a (shortened?) commit hash
-	if isHex(ref) {
-		var commit gitCommitResponse
-		if err := c.doREST(ctx, "GET", fmt.Sprintf("/repos/%s/%s/commits/%s", owner, repo, ref), &commit); err == nil {
-			return commit.SHA, nil
+	{
+		if isHex(ref) {
+			var commit gitCommitResponse
+			err := c.doREST(ctx, "GET", fmt.Sprintf("/repos/%s/%s/commits/%s", owner, repo, ref), &commit)
+			if err == nil {
+				log.DebugContext(ctx, "ref resolved to commit hash", "commit", commit.SHA)
+				return commit.SHA, nil
+			}
+			log.DebugContext(ctx, "ref is not a commit hash", "error", err)
 		}
 	}
 
 	// potentially a branch
-	var gitRef gitRefResponse
-	if err := c.doREST(ctx, "GET", fmt.Sprintf("/repos/%s/%s/git/ref/heads/%s", owner, repo, ref), &gitRef); err == nil {
-		return gitRef.Object.SHA, nil
+	{
+		var gitRef gitRefResponse
+		err := c.doREST(ctx, "GET", fmt.Sprintf("/repos/%s/%s/git/ref/heads/%s", owner, repo, ref), &gitRef)
+		if err == nil {
+			log.DebugContext(ctx, "ref resolved to branch", "commit", gitRef.Object.SHA)
+			return gitRef.Object.SHA, nil
+		}
+		log.DebugContext(ctx, "ref is not a branch", "error", err)
 	}
 
 	// potentially a tag
-	if err := c.doREST(ctx, "GET", fmt.Sprintf("/repos/%s/%s/git/ref/tags/%s", owner, repo, ref), &gitRef); err == nil {
-		// lightweight tag, we're done
-		if gitRef.Object.Type == "commit" {
-			return gitRef.Object.SHA, nil
+	{
+		var gitRef gitRefResponse
+		err := c.doREST(ctx, "GET", fmt.Sprintf("/repos/%s/%s/git/ref/tags/%s", owner, repo, ref), &gitRef)
+		if err == nil {
+			// lightweight tag, we're done
+			if gitRef.Object.Type == "commit" {
+				log.DebugContext(ctx, "ref resolved to lightweight tag", "commit", gitRef.Object.SHA)
+				return gitRef.Object.SHA, nil
+			}
+
+			// need another request for annotated tags
+			if err := c.doREST(ctx, "GET", fmt.Sprintf("/repos/%s/%s/git/tags/%s", owner, repo, gitRef.Object.SHA), &gitRef); err == nil {
+				log.DebugContext(ctx, "ref resolved to annotated tag", "commit", gitRef.Object.SHA)
+				return gitRef.Object.SHA, nil
+			}
+			log.DebugContext(ctx, "ref is not a lightweight or annotated tag", "error", err)
 		}
-		// need another request for annotated tags
-		if err := c.doREST(ctx, "GET", fmt.Sprintf("/repos/%s/%s/git/tags/%s", owner, repo, gitRef.Object.SHA), &gitRef); err == nil {
-			return gitRef.Object.SHA, nil
-		}
+		log.DebugContext(ctx, "ref is not a tag", "error", err)
 	}
 
 	return "", fmt.Errorf("failed to resolve reference %s", ref)

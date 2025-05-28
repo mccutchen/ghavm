@@ -101,26 +101,36 @@ Available modes:
 	// (which is every command today, but might not be in the future, so we
 	// don't want to define these on the root command)
 	for _, cmd := range []*cobra.Command{listCmd, pinCmd, upgradeCmd} {
+		cmd.Flags().StringP("github-token", "g", "", "GitHub access token (default: GITHUB_TOKEN env value)")
 		cmd.Flags().StringSliceP("targets", "t", nil, "Limit upgrades to specific actions (e.g. --target actions/checkout)")
 		cmd.Flags().IntP("jobs", "j", runtime.NumCPU(), "Limit parallelism when accessing the GitHub API")
 		cmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging")
 
-		// these commands all require a github access token, taken from the
-		// command line or from the GITHUB_TOKEN env var (in that order).
-		cmd.Flags().StringP("github-token", "g", "", "GitHub access token (default: GITHUB_TOKEN env value)")
-		cmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
-			token := cmd.Flag("github-token").Value.String()
-			if token == "" {
-				token = os.Getenv("GITHUB_TOKEN")
-				if token == "" {
-					return fmt.Errorf("--github-token/-g flag or GITHUB_TOKEN env var are required")
+		// set up env var handling
+		cmd.PreRunE = wrapPreRunE(cmd, func(cmd *cobra.Command, _ []string) error {
+			// github-token is required, but we will also take the value from
+			// the GITHUB_TOKEN env var if found.
+			if f := cmd.Flag("github-token"); !f.Changed {
+				if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+					if err := f.Value.Set(token); err != nil {
+						return fmt.Errorf("internals: failed to set value of github-token flag: %w", err)
+					}
+				} else {
+					return fmt.Errorf("either --github-token/-g flag or GITHUB_TOKEN env var are required")
 				}
 			}
-			if err := cmd.Flag("github-token").Value.Set(token); err != nil {
-				return fmt.Errorf("internals: failed to set value of github-token flag: %w", err)
+
+			// verbose flag is optional, but we also support setting via env vars
+			if f := cmd.Flag("verbose"); !f.Changed {
+				if verbose := os.Getenv("VERBOSE"); verbose != "" && verbose != "0" && verbose != "false" {
+					if err := f.Value.Set("true"); err != nil {
+						return fmt.Errorf("internals: failed to set value of verbose flag: %w", err)
+					}
+				}
 			}
+
 			return nil
-		}
+		})
 	}
 
 	// add subcommands to our root command
@@ -172,7 +182,7 @@ func listCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to scan workflow files: %w", err)
 	}
 
-	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr())
+	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr(), verbose)
 	if err := engine.List(ctx, cmd.OutOrStdout()); err != nil {
 		return err
 	}
@@ -229,7 +239,7 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// pin or upgrade actions
-	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr())
+	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr(), verbose)
 	if err := engine.Pin(ctx, mode); err != nil {
 		return err
 	}
@@ -249,3 +259,19 @@ func chooseLogLevel(verbose bool) slog.Level {
 	}
 	return slog.LevelWarn
 }
+
+// wrapPreRunE acts as a "middleware" for cobra Command.PreRunE functions.
+func wrapPreRunE(cmd *cobra.Command, newPreRunE preRunE) preRunE {
+	if cmd.PreRunE == nil {
+		return newPreRunE
+	}
+	oldPreRunE := cmd.PreRunE
+	return func(cmd *cobra.Command, args []string) error {
+		if err := oldPreRunE(cmd, args); err != nil {
+			return err
+		}
+		return newPreRunE(cmd, args)
+	}
+}
+
+type preRunE func(cmd *cobra.Command, args []string) error
