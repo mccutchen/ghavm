@@ -77,7 +77,7 @@ func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Wri
 // any available upgrades.
 func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 	if err := e.resolveSteps(ctx, ModeLatest); err != nil {
-		return fmt.Errorf("engine: failed to resolve commit refs: %w", err)
+		return fmt.Errorf("failed to resolve commit refs: %w", err)
 	}
 
 	keys := slices.Sorted(maps.Keys(e.root.Workflows))
@@ -129,13 +129,13 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 // commit hashes.
 func (e *Engine) Pin(ctx context.Context, mode PinMode) error {
 	if err := e.resolveSteps(ctx, mode); err != nil {
-		return fmt.Errorf("engine: failed to resolve commit refs: %w", err)
+		return fmt.Errorf("failed to resolve commit refs: %w", err)
 	}
 	e.log.StartSection("pinning %d action(s) to immutable hashes for their %s versions in %d workflow(s) ...", e.root.StepCount(), mode, e.root.WorkflowCount())
-	defer e.log.FinishSection("done!")
 	if err := e.rewriteWorkflows(ctx, rewriteStrategyForMode(mode)); err != nil {
-		return fmt.Errorf("engine: upgrade failed: %w", err)
+		return fmt.Errorf("upgrade failed: %w", err)
 	}
+	e.log.FinishSection("done!")
 	return nil
 }
 
@@ -146,7 +146,7 @@ func (e *Engine) rewriteWorkflows(ctx context.Context, strategy RewriteStrategy)
 
 		f, err := os.Open(w.FilePath)
 		if err != nil {
-			return fmt.Errorf("engine: %w", err)
+			return err
 		}
 
 		steps := stepsByLine(w.Steps)
@@ -177,7 +177,7 @@ func (e *Engine) rewriteWorkflows(ctx context.Context, strategy RewriteStrategy)
 
 			before, _, found := strings.Cut(line, "uses:")
 			if !found {
-				return fmt.Errorf("engine: expected `uses:` declaration on line %d, got %q", lineNum, line)
+				return fmt.Errorf("expected `uses:` declaration on line %d, got %q", lineNum, line)
 			}
 
 			// write prefix
@@ -194,14 +194,14 @@ func (e *Engine) rewriteWorkflows(ctx context.Context, strategy RewriteStrategy)
 			fmt.Fprint(out, matchEOL(line))
 		}
 		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("engine: %w", err)
+			return fmt.Errorf("failed to scan workflow %s: %w", w.FilePath, err)
 		}
 		slogctx.Debug(
 			ctx, "writing pinned file",
 			"file", w.FilePath,
 		)
 		if err := renameio.WriteFile(w.FilePath, []byte(out.String()), 0); err != nil {
-			return fmt.Errorf("engine: failed to atomically replace file: %w", err)
+			return fmt.Errorf("failed to atomically replace file: %w", err)
 		}
 	}
 	return nil
@@ -239,7 +239,7 @@ func chooseUpgrade(step Step, mode PinMode) Release {
 	case ModeCurrent:
 		return current
 	default:
-		panic("engine: invalid upgrade mode")
+		panic("chooseUpgrade: invalid upgrade mode")
 	}
 }
 
@@ -249,8 +249,7 @@ func chooseUpgrade(step Step, mode PinMode) Release {
 //
 // Each step is mutated in-place as it is resolved.
 func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
-	e.log.StartSection("resolving action versions for %d steps across %d workflows ...", e.root.StepCount(), e.root.WorkflowCount())
-	defer e.log.FinishSection("done!")
+	e.log.StartSection("resolving action versions for %d step(s) across %d workflow(s) with %d workers", e.root.StepCount(), e.root.WorkflowCount(), e.parallelism)
 
 	// we can skip the extra work of resolving up to two different upgrade
 	// versions if we're only interested in the current versions of our
@@ -271,7 +270,7 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 
 			// don't schedule more than N concurrent tasks
 			if err := sem.Acquire(ctx, 1); err != nil {
-				return fmt.Errorf("engine: failed to acquire semaphore: %w", err)
+				return fmt.Errorf("failed to acquire semaphore: %w", err)
 			}
 			g.Go(func() error {
 				defer sem.Release(1)
@@ -284,8 +283,10 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 		}
 	}
 	if err := g.Wait(); err != nil {
-		return fmt.Errorf("engine: failed to resolve actions: %w", err)
+		return fmt.Errorf("failed to resolve actions: %w", err)
 	}
+
+	e.log.FinishSection("done!")
 	return nil
 }
 
@@ -343,7 +344,7 @@ func (e *Engine) resolveStep(ctx context.Context, workflow Workflow, step *Step,
 		e.log.StepInfo(workflow, step, "finding upgrade candidates for version %s", step.Action.Release.Version)
 		candidates, err := e.gh.GetUpgradeCandidates(ctx, step.Action.Name, step.Action.Release)
 		if err != nil {
-			return fmt.Errorf("engine: failed to get upgrade candidates for version %s@%s: %w", step.Action.Name, step.Action.Release.Version, err)
+			return fmt.Errorf("failed to get upgrade candidates for version %s@%s: %w", step.Action.Name, step.Action.Release.Version, err)
 		}
 		step.Action.UpgradeCandidates = candidates
 	}
