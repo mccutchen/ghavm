@@ -62,8 +62,11 @@ type Engine struct {
 }
 
 // newEngine creates a new [Engine].
-func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Writer) *Engine {
-	log := &Logger{out: logOut}
+func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Writer, verbose bool) *Engine {
+	log := &Logger{
+		out:   logOut,
+		fancy: !verbose && !color.NoColor,
+	}
 	log.precomputeColumnWidths(root)
 	return &Engine{
 		gh:          ghClient,
@@ -402,6 +405,7 @@ type Logger struct {
 	mu  sync.Mutex
 	out io.Writer
 
+	fancy         bool
 	stepWritten   atomic.Bool
 	workflowWidth int
 	stepWidth     int
@@ -440,7 +444,7 @@ func (l *Logger) stepLog(_ slog.Level, workflow Workflow, step *Step, msg string
 func (l *Logger) writeln(msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.stepWritten.Load() && !color.NoColor {
+	if l.fancy && l.stepWritten.Load() {
 		msg = cursorUpOne + clearLine + carriageReturn + msg
 	}
 	fmt.Fprintln(l.out, msg)
