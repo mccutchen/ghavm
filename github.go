@@ -5,6 +5,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iter"
 	"log/slog"
@@ -131,7 +132,14 @@ func (c *GitHubClient) doREST(ctx context.Context, method string, url string, ta
 		slog.String("ratelimit.reset", resp.Header.Get("x-ratelimit-reset")),
 	)
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("http error: %s", resp.Status)
+		switch resp.StatusCode {
+		case 401:
+			return errors.New("invalid auth token")
+		case 403:
+			return errors.New("access denied")
+		default:
+			return fmt.Errorf("http error: %s", resp.Status)
+		}
 	}
 	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
 		return fmt.Errorf("failed to unmarshal data: %w", err)
@@ -401,6 +409,18 @@ func (c *GitHubClient) doGetCommitHashForRef(ctx context.Context, targetRepo str
 	}
 
 	return "", fmt.Errorf("failed to resolve reference %s", ref)
+}
+
+// ValidateAuth ensures that the configured auth token is valid by fetching
+// info on the authenticated user.
+func (c *GitHubClient) ValidateAuth(ctx context.Context) (string, error) {
+	var user struct {
+		Login string `json:"login"`
+	}
+	if err := c.doREST(ctx, "GET", "/user", &user); err != nil {
+		return "", err
+	}
+	return user.Login, nil
 }
 
 type gitCommitResponse struct {

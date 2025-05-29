@@ -642,6 +642,53 @@ func TestGetCommitHashForRef(t *testing.T) {
 	}
 }
 
+func TestValidateAuth(t *testing.T) {
+	t.Parallel()
+	tests := map[string]struct {
+		restEndpoints map[string]httpResponse
+		expectLogin   string
+		expectError   error
+	}{
+		"auth okay": {
+			expectLogin: "test-user",
+			restEndpoints: map[string]httpResponse{
+				"GET /user": okResponse(`{
+							"login": "test-user",
+							"id": 1234,
+							"name": "Test User",
+							"email": "test-user@example.com"
+						}`),
+			},
+		},
+		"invalid token": {
+			expectError: errors.New("invalid auth token"),
+			restEndpoints: map[string]httpResponse{
+				"GET /user": errResponse(http.StatusUnauthorized, ""),
+			},
+		},
+		"forbidden": {
+			expectError: errors.New("access denied"),
+			restEndpoints: map[string]httpResponse{
+				"GET /user": errResponse(http.StatusForbidden, ""),
+			},
+		},
+	}
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			client := newTestClient(t, nil, tc.restEndpoints)
+			login, err := client.ValidateAuth(testCtx())
+			if tc.expectError != nil {
+				assert.Error(t, err, tc.expectError)
+				return
+			}
+			assert.NilError(t, err)
+			assert.Equal(t, login, tc.expectLogin, "incorrect login")
+		})
+	}
+}
+
 func TestReleaseExists(t *testing.T) {
 	t.Parallel()
 	var (
@@ -798,4 +845,8 @@ type httpResponse struct {
 
 func okResponse(body string) httpResponse {
 	return httpResponse{http.StatusOK, body}
+}
+
+func errResponse(code int, body string) httpResponse {
+	return httpResponse{code, body}
 }

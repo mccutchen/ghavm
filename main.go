@@ -151,6 +151,11 @@ func listCmd(cmd *cobra.Command, args []string) error {
 		ghClient = NewGitHubClient(token, nil)
 	)
 
+	// ensure our auth token is valid
+	if _, err := ghClient.ValidateAuth(ctx); err != nil {
+		return fmt.Errorf("GitHub authentication failed: %s", err)
+	}
+
 	// find workflow files to work on
 	files, err := FindWorkflows(args)
 	if err != nil {
@@ -200,6 +205,11 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 		default:
 			panic("invalid upgrade mode: " + modeStr)
 		}
+	}
+
+	// ensure our auth token is valid
+	if _, err := ghClient.ValidateAuth(ctx); err != nil {
+		return fmt.Errorf("GitHub authentication failed: %s", err)
 	}
 
 	// find workflow files to work on
