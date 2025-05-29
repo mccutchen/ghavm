@@ -21,11 +21,17 @@ jobs:
       - name: trailing data in comment is dropped when updating
         uses: mccutchen/ghavm-test-repo@c09a940bc73914e8d734930e72cf8816613b1b4f # v0.0.1: extra context will be dropped
 
+      - name: repo doesn't exist but that should not prevent updating subsequent steps
+        uses: mccutchen/ghavm-test-nonexistent-repo@v1
+
       - name: branch name that does not correspond to any release
         uses: mccutchen/ghavm-test-repo@develop
 
       - name: symbolic name that happens to resolve to semver release
         uses: mccutchen/ghavm-test-repo@feature/new_feature-01
+
+      - name: ref doesn't exist but that should not prevent updating subsequent steps
+        uses: mccutchen/ghavm-test-repo@v99.99.99
 
       - name: annotated tag requires special handling
         uses: mccutchen/ghavm-test-repo@v3.2.3-annotated
