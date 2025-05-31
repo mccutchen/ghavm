@@ -105,6 +105,7 @@ Available modes:
 		cmd.Flags().StringSliceP("targets", "t", nil, "Limit upgrades to specific actions (e.g. --target actions/checkout)")
 		cmd.Flags().IntP("jobs", "j", runtime.NumCPU(), "Limit parallelism when accessing the GitHub API")
 		cmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging")
+		cmd.Flags().Bool("strict", false, "Strict mode, abort on any error")
 
 		// set up env var handling
 		cmd.PreRunE = wrapPreRunE(cmd, func(cmd *cobra.Command, _ []string) error {
@@ -154,6 +155,7 @@ func listCmd(cmd *cobra.Command, args []string) error {
 		token, _   = flags.GetString("github-token")
 		targets, _ = flags.GetStringSlice("target")
 		jobs, _    = flags.GetInt("jobs")
+		strict, _  = flags.GetBool("strict")
 		verbose, _ = flags.GetBool("verbose")
 	)
 	var (
@@ -182,7 +184,7 @@ func listCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to scan workflow files: %w", err)
 	}
 
-	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr(), verbose)
+	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr(), strict, verbose)
 	if err := engine.List(ctx, cmd.OutOrStdout()); err != nil {
 		return err
 	}
@@ -195,6 +197,7 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 		token, _   = flags.GetString("github-token")
 		targets, _ = flags.GetStringSlice("target")
 		jobs, _    = flags.GetInt("jobs")
+		strict, _  = flags.GetBool("strict")
 		verbose, _ = flags.GetBool("verbose")
 	)
 	var (
@@ -239,7 +242,7 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// pin or upgrade actions
-	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr(), verbose)
+	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr(), strict, verbose)
 	if err := engine.Pin(ctx, mode); err != nil {
 		return err
 	}

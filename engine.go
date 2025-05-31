@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -64,11 +65,12 @@ type Engine struct {
 	root        Root
 	gh          *GitHubClient
 	parallelism int
+	strict      bool
 	log         *Logger
 }
 
 // newEngine creates a new [Engine].
-func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Writer, verbose bool) *Engine {
+func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Writer, strict bool, verbose bool) *Engine {
 	log := &Logger{
 		out:   logOut,
 		fancy: !verbose && !color.NoColor,
@@ -78,6 +80,7 @@ func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Wri
 		gh:          ghClient,
 		root:        root,
 		parallelism: parallelism,
+		strict:      strict,
 		log:         log,
 	}
 }
@@ -281,13 +284,27 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 
 			// don't schedule more than N concurrent tasks
 			if err := sem.Acquire(ctx, 1); err != nil {
-				e.log.StepError(workflow, step, fmt.Errorf("failed to acquire semaphore: %w", err))
+				// if context was canceled, it means another step failed and
+				// the whole errgroup will be aborted, so we can let the other
+				// failure be reported instead of potentially masking it with
+				// an uninformative context cancelation error
+				if errors.Is(err, context.Canceled) {
+					continue
+				}
+				err = fmt.Errorf("failed to acquire semaphore: %w", err)
+				e.log.StepError(workflow, step, err)
+				if e.strict {
+					return err
+				}
 				continue
 			}
 			g.Go(func() error {
 				defer sem.Release(1)
 				if err := e.resolveStep(ctx, workflow, step, fetchUpgrades); err != nil {
 					e.log.StepError(workflow, step, err)
+					if e.strict {
+						return err
+					}
 				}
 				return nil
 			})
