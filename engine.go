@@ -49,14 +49,11 @@ func (m PinMode) String() string {
 }
 
 var (
-	bold    = color.New(color.Bold).SprintFunc()
-	boldf   = color.New(color.Bold).SprintfFunc()
-	green   = color.New(color.FgGreen).SprintFunc()
-	greenf  = color.New(color.FgGreen).SprintfFunc()
-	red     = color.New(color.FgRed).SprintFunc()
-	redf    = color.New(color.FgRed).SprintfFunc()
-	yellow  = color.New(color.FgYellow).SprintFunc()
-	yellowf = color.New(color.FgYellow).SprintfFunc()
+	bold   = color.New(color.Bold).SprintFunc()
+	boldf  = color.New(color.Bold).SprintfFunc()
+	green  = color.New(color.FgGreen).SprintFunc()
+	red    = color.New(color.FgRed).SprintFunc()
+	yellow = color.New(color.FgYellow).SprintFunc()
 )
 
 // Engine manages the version upgrade process, from resolving current versions
