@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -48,8 +49,11 @@ func (m PinMode) String() string {
 }
 
 var (
-	bold  = color.New(color.Bold).SprintFunc()
-	boldf = color.New(color.Bold).SprintfFunc()
+	bold   = color.New(color.Bold).SprintFunc()
+	boldf  = color.New(color.Bold).SprintfFunc()
+	green  = color.New(color.FgGreen).SprintFunc()
+	red    = color.New(color.FgRed).SprintFunc()
+	yellow = color.New(color.FgYellow).SprintFunc()
 )
 
 // Engine manages the version upgrade process, from resolving current versions
@@ -58,11 +62,12 @@ type Engine struct {
 	root        Root
 	gh          *GitHubClient
 	parallelism int
+	strict      bool
 	log         *Logger
 }
 
 // newEngine creates a new [Engine].
-func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Writer, verbose bool) *Engine {
+func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Writer, strict bool, verbose bool) *Engine {
 	log := &Logger{
 		out:   logOut,
 		fancy: !verbose && !color.NoColor,
@@ -72,6 +77,7 @@ func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Wri
 		gh:          ghClient,
 		root:        root,
 		parallelism: parallelism,
+		strict:      strict,
 		log:         log,
 	}
 }
@@ -84,24 +90,23 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 	}
 
 	keys := slices.Sorted(maps.Keys(e.root.Workflows))
-	for _, key := range keys {
+	for i, key := range keys {
 		w := e.root.Workflows[key]
 		if len(w.Steps) == 0 {
 			continue
 		}
-		fmt.Fprintln(dst, "")
-		fmt.Fprintf(dst, "in workflow %s", bold(filepath.Base(w.FilePath)))
-		fmt.Fprintln(dst, "")
+		fmt.Fprintf(dst, "workflow %s", bold(filepath.Base(w.FilePath)))
+		fmt.Fprintln(dst)
 		for _, s := range w.Steps {
 			var (
 				current = s.Action.Release
 				latest  = s.Action.UpgradeCandidates.Latest
 				compat  = s.Action.UpgradeCandidates.LatestCompatible
 			)
-			fmt.Fprintf(dst, "  action %s has available versions:", boldf("%s@%s", s.Action.Name, s.Action.Ref))
+			fmt.Fprintf(dst, "  action %s versions:", boldf("%s@%s", s.Action.Name, s.Action.Ref))
 			fmt.Fprintln(dst, "")
 			if !current.Exists() {
-				fmt.Fprintln(dst, "  (could not resolve action versions, unable to pin or upgrade)")
+				fmt.Fprintln(dst, yellow("    (could not resolve action versions, unable to pin or upgrade)"))
 				continue
 			}
 			fmt.Fprintln(dst, "    current: "+current.String())
@@ -109,19 +114,22 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 				fmt.Fprintln(dst, "    (no upgrade versions found)")
 				continue
 			} else if latest == current {
-				fmt.Fprintln(dst, "    ✓ already using latest version")
+				fmt.Fprintln(dst, green("    ✓ already using latest version"))
 				continue
 			}
 			if compat.Exists() {
 				msg := compat.String()
 				if compat == current {
-					msg = "✓ already using latest compat version"
+					msg = green("✓ already using latest compat version")
 				}
 				fmt.Fprintln(dst, "    compat:  "+msg)
 			}
 			if latest.Exists() {
 				fmt.Fprintln(dst, "    latest:  "+latest.String())
 			}
+		}
+		if i < len(keys)-1 {
+			fmt.Fprintln(dst)
 		}
 	}
 
@@ -252,7 +260,7 @@ func chooseUpgrade(step Step, mode PinMode) Release {
 //
 // Each step is mutated in-place as it is resolved.
 func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
-	e.log.StartSection("resolving action versions for %d step(s) across %d workflow(s) with %d workers", e.root.StepCount(), e.root.WorkflowCount(), e.parallelism)
+	e.log.StartSection("resolving action versions for %d step(s) across %d workflow(s) with %d workers ...", e.root.StepCount(), e.root.WorkflowCount(), e.parallelism)
 
 	// we can skip the extra work of resolving up to two different upgrade
 	// versions if we're only interested in the current versions of our
@@ -273,13 +281,27 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 
 			// don't schedule more than N concurrent tasks
 			if err := sem.Acquire(ctx, 1); err != nil {
-				return fmt.Errorf("failed to acquire semaphore: %w", err)
+				// if context was canceled, it means another step failed and
+				// the whole errgroup will be aborted, so we can let the other
+				// failure be reported instead of potentially masking it with
+				// an uninformative context cancelation error
+				if errors.Is(err, context.Canceled) {
+					continue
+				}
+				err = fmt.Errorf("failed to acquire semaphore: %w", err)
+				e.log.StepError(workflow, step, err)
+				if e.strict {
+					return err
+				}
+				continue
 			}
 			g.Go(func() error {
 				defer sem.Release(1)
 				if err := e.resolveStep(ctx, workflow, step, fetchUpgrades); err != nil {
 					e.log.StepError(workflow, step, err)
-					return err
+					if e.strict {
+						return err
+					}
 				}
 				return nil
 			})
@@ -290,6 +312,7 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 	}
 
 	e.log.FinishSection("done!")
+	e.log.ShowDiagnistics()
 	return nil
 }
 
@@ -304,14 +327,14 @@ func (e *Engine) resolveStep(ctx context.Context, workflow Workflow, step *Step,
 	e.log.StepInfo(workflow, step, "resolving commit hash for ref %s", step.Action.Ref)
 	commit, err := e.gh.GetCommitHashForRef(ctx, step.Action.Name, step.Action.Ref)
 	if err != nil {
-		return fmt.Errorf("failed to resolve commit hash for ref %s@%s: %w", step.Action.Name, step.Action.Ref, err)
+		return fmt.Errorf("failed to resolve commit hash for ref %s: %w", step.Action.Ref, err)
 	}
 
 	// 2a. attempt to find any semver tags pointing to the resolved commit hash.
 	e.log.StepInfo(workflow, step, "resolving semver tags for commit hash %s", commit)
 	versions, err := e.gh.GetVersionTagsForCommitHash(ctx, step.Action.Name, commit)
 	if err != nil {
-		return fmt.Errorf("failed to fetch version tags for resolved commit %s@%s: %w", step.Action.Name, commit, err)
+		return fmt.Errorf("failed to fetch version tags for resolved commit %s: %w", commit, err)
 	}
 
 	// 2b. it's conceivable that some commits will point to multiple
@@ -347,7 +370,7 @@ func (e *Engine) resolveStep(ctx context.Context, workflow Workflow, step *Step,
 		e.log.StepInfo(workflow, step, "finding upgrade candidates for version %s", step.Action.Release.Version)
 		candidates, err := e.gh.GetUpgradeCandidates(ctx, step.Action.Name, step.Action.Release)
 		if err != nil {
-			return fmt.Errorf("failed to get upgrade candidates for version %s@%s: %w", step.Action.Name, step.Action.Release.Version, err)
+			return fmt.Errorf("failed to get upgrade candidates for version %s: %w", step.Action.Release.Version, err)
 		}
 		step.Action.UpgradeCandidates = candidates
 	}
@@ -399,11 +422,27 @@ const (
 	showCursor     = "\033[?25h"
 )
 
+// Level is a logging/diagnostics level.
+type Level slog.Level
+
+func (l Level) String() string {
+	return slog.Level(l).String()
+}
+
+// Available levels.
+const (
+	LevelDebug = Level(slog.LevelDebug)
+	LevelInfo  = Level(slog.LevelInfo)
+	LevelWarn  = Level(slog.LevelWarn)
+	LevelError = Level(slog.LevelError)
+)
+
 // Logger is a minimal, tightly coupled logger providing visibility into an
 // [Engine]'s progress.
 type Logger struct {
-	mu  sync.Mutex
-	out io.Writer
+	mu          sync.Mutex
+	out         io.Writer
+	diagnostics map[string][]DiagnosticRecord // workflow path -> records
 
 	fancy         bool
 	stepWritten   atomic.Bool
@@ -413,7 +452,6 @@ type Logger struct {
 
 // StartSection logs a header line marking a new phase.
 func (l *Logger) StartSection(msg string, args ...any) {
-	l.writeln("")
 	l.writeln(boldf(msg, args...))
 }
 
@@ -425,20 +463,70 @@ func (l *Logger) StepInfo(workflow Workflow, step *Step, msg string, args ...any
 // StepError logs an error-level message for a specific [Workflow] and [Step].
 func (l *Logger) StepError(workflow Workflow, step *Step, err error) {
 	l.stepLog(slog.LevelError, workflow, step, err.Error())
+	l.addDiagnostic(LevelError, workflow, step, err.Error())
 }
 
 // FinishSection logs a footer line marking the end of a phase.
 func (l *Logger) FinishSection(msg string, args ...any) {
 	l.writeln(boldf(msg, args...))
 	l.stepWritten.Store(false)
+	l.writeln("")
 }
 
-func (l *Logger) stepLog(_ slog.Level, workflow Workflow, step *Step, msg string, args ...any) {
+func (l *Logger) stepLog(level slog.Level, workflow Workflow, step *Step, msg string, args ...any) {
 	prefixTmpl := fmt.Sprintf("file=%%-%ds action=%%-%ds → ", l.workflowWidth, l.stepWidth)
 	prefix := fmt.Sprintf(prefixTmpl, filepath.Base(workflow.FilePath), step.Action.Name)
 	msg = fmt.Sprintf(prefix+msg, args...)
+	if level == slog.LevelError {
+		msg = red(msg)
+	}
 	l.writeln(msg)
 	l.stepWritten.Store(true)
+}
+func (l *Logger) addDiagnostic(level Level, w Workflow, s *Step, msg string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.diagnostics == nil {
+		l.diagnostics = make(map[string][]DiagnosticRecord)
+	}
+	key := w.FilePath
+	l.diagnostics[key] = append(l.diagnostics[key], DiagnosticRecord{
+		Level: level,
+		Step:  *s,
+		Msg:   msg,
+	})
+}
+
+func (l *Logger) ShowDiagnistics() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if len(l.diagnostics) == 0 {
+		return
+	}
+
+	msgPrefixTmpl := fmt.Sprintf("%%5s %%-%ds → ", l.stepWidth)
+
+	fmt.Fprintln(l.out, bold("diagnostics"))
+
+	workflowKeys := slices.Sorted(maps.Keys(l.diagnostics))
+	for _, workflow := range workflowKeys {
+		fmt.Fprintln(l.out, " ", bold(workflow))
+		for _, rec := range l.diagnostics[workflow] {
+			msgPrefix := fmt.Sprintf(msgPrefixTmpl, rec.Level, rec.Step.Action.Name)
+			msg := fmt.Sprintf("    %s%s", msgPrefix, rec.Msg)
+
+			switch rec.Level {
+			case LevelWarn:
+				msg = yellow(msg)
+			case LevelError:
+				msg = red(msg)
+			}
+
+			fmt.Fprintln(l.out, msg)
+		}
+	}
+	fmt.Fprintln(l.out)
 }
 
 func (l *Logger) writeln(msg string) {
@@ -457,4 +545,10 @@ func (l *Logger) precomputeColumnWidths(root Root) {
 			l.stepWidth = max(l.stepWidth, len(step.Action.Name))
 		}
 	}
+}
+
+type DiagnosticRecord struct {
+	Level Level
+	Step  Step
+	Msg   string
 }

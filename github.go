@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"iter"
 	"log/slog"
 	"net/http"
@@ -138,7 +139,8 @@ func (c *GitHubClient) doREST(ctx context.Context, method string, url string, ta
 		case 403:
 			return errors.New("access denied")
 		default:
-			return fmt.Errorf("http error: %s", resp.Status)
+			body, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("http error: %s: %s", resp.Status, string(body))
 		}
 	}
 	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
