@@ -370,7 +370,9 @@ func (e *Engine) resolveStep(ctx context.Context, workflow Workflow, step *Step,
 		e.log.StepInfo(workflow, step, "finding upgrade candidates for version %s", step.Action.Release.Version)
 		candidates, err := e.gh.GetUpgradeCandidates(ctx, step.Action.Name, step.Action.Release)
 		if err != nil {
-			return fmt.Errorf("failed to get upgrade candidates for version %s: %w", step.Action.Release.Version, err)
+			e.log.StepError(workflow, step, fmt.Errorf("failed to get upgrade candidates for version %s: %w", step.Action.Release.Version, err))
+		} else if candidates == (UpgradeCandidates{}) {
+			e.log.StepWarn(workflow, step, fmt.Sprintf("no upgrade candidates found for version %s", step.Action.Release.Version))
 		}
 		step.Action.UpgradeCandidates = candidates
 	}
@@ -457,12 +459,19 @@ func (l *Logger) StartSection(msg string, args ...any) {
 
 // StepInfo logs an info-level message for a specific [Workflow] and [Step].
 func (l *Logger) StepInfo(workflow Workflow, step *Step, msg string, args ...any) {
-	l.stepLog(slog.LevelInfo, workflow, step, msg, args...)
+	l.stepLog(LevelInfo, workflow, step, msg, args...)
+}
+
+// StepWarn logs an error-level message for a specific [Workflow] and [Step].
+func (l *Logger) StepWarn(workflow Workflow, step *Step, msg string, args ...any) {
+	msg = fmt.Sprintf(msg, args...)
+	l.stepLog(LevelWarn, workflow, step, msg)
+	l.addDiagnostic(LevelWarn, workflow, step, msg)
 }
 
 // StepError logs an error-level message for a specific [Workflow] and [Step].
 func (l *Logger) StepError(workflow Workflow, step *Step, err error) {
-	l.stepLog(slog.LevelError, workflow, step, err.Error())
+	l.stepLog(LevelError, workflow, step, err.Error())
 	l.addDiagnostic(LevelError, workflow, step, err.Error())
 }
 
@@ -473,12 +482,15 @@ func (l *Logger) FinishSection(msg string, args ...any) {
 	l.writeln("")
 }
 
-func (l *Logger) stepLog(level slog.Level, workflow Workflow, step *Step, msg string, args ...any) {
+func (l *Logger) stepLog(level Level, workflow Workflow, step *Step, msg string, args ...any) {
 	prefixTmpl := fmt.Sprintf("file=%%-%ds action=%%-%ds → ", l.workflowWidth, l.stepWidth)
 	prefix := fmt.Sprintf(prefixTmpl, filepath.Base(workflow.FilePath), step.Action.Name)
 	msg = fmt.Sprintf(prefix+msg, args...)
-	if level == slog.LevelError {
+	switch level {
+	case LevelError:
 		msg = red(msg)
+	case LevelWarn:
+		msg = yellow(msg)
 	}
 	l.writeln(msg)
 	l.stepWritten.Store(true)
