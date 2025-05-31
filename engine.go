@@ -416,14 +416,6 @@ func matchEOL(line string) string {
 	return eolPattern.FindString(line)
 }
 
-const (
-	cursorUpOne    = "\033[1A"
-	clearLine      = "\033[2K"
-	carriageReturn = "\r"
-	hideCursor     = "\033[?25l"
-	showCursor     = "\033[?25h"
-)
-
 // Level is a logging/diagnostics level.
 type Level slog.Level
 
@@ -447,14 +439,25 @@ type Logger struct {
 	diagnostics map[string][]DiagnosticRecord // workflow path -> records
 
 	fancy         bool
-	stepWritten   atomic.Bool
 	workflowWidth int
 	stepWidth     int
+	inPlaceWrites atomic.Int64
 }
 
 // StartSection logs a header line marking a new phase.
 func (l *Logger) StartSection(msg string, args ...any) {
 	l.writeln(boldf(msg, args...))
+}
+
+// FinishSection logs a footer line marking the end of a phase.
+func (l *Logger) FinishSection(msg string, args ...any) {
+	// only clear and overwrite previous two lines if we actually did any
+	// previous in-place writes
+	if l.inPlaceWrites.Swap(0) > 1 {
+		l.write(cursorUpTwo + carriageReturn + clearToEnd + showCursor)
+	}
+	l.writeln(boldf(msg, args...))
+	l.writeln("")
 }
 
 // StepInfo logs an info-level message for a specific [Workflow] and [Step].
@@ -475,26 +478,19 @@ func (l *Logger) StepError(workflow Workflow, step *Step, err error) {
 	l.addDiagnostic(LevelError, workflow, step, err.Error())
 }
 
-// FinishSection logs a footer line marking the end of a phase.
-func (l *Logger) FinishSection(msg string, args ...any) {
-	l.writeln(boldf(msg, args...))
-	l.stepWritten.Store(false)
-	l.writeln("")
-}
-
 func (l *Logger) stepLog(level Level, workflow Workflow, step *Step, msg string, args ...any) {
-	prefixTmpl := fmt.Sprintf("file=%%-%ds action=%%-%ds → ", l.workflowWidth, l.stepWidth)
-	prefix := fmt.Sprintf(prefixTmpl, filepath.Base(workflow.FilePath), step.Action.Name)
-	msg = fmt.Sprintf(prefix+msg, args...)
+	headerTmpl := fmt.Sprintf("workflow=%%-%ds action=%%-%ds", l.workflowWidth, l.stepWidth)
+	header := fmt.Sprintf(headerTmpl, bold(filepath.Base(workflow.FilePath)), bold(step.Action.Name))
+	msg = fmt.Sprintf(msg, args...)
 	switch level {
 	case LevelError:
 		msg = red(msg)
 	case LevelWarn:
 		msg = yellow(msg)
 	}
-	l.writeln(msg)
-	l.stepWritten.Store(true)
+	l.writeInPlace(header, msg)
 }
+
 func (l *Logger) addDiagnostic(level Level, w Workflow, s *Step, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -541,13 +537,45 @@ func (l *Logger) ShowDiagnistics() {
 	fmt.Fprintln(l.out)
 }
 
+const (
+	cursorUpTwo    = "\033[2A"
+	clearToEnd     = "\033[0J" // clear from cursor to end of screen
+	carriageReturn = "\r"
+	hideCursor     = "\033[?25l"
+	showCursor     = "\033[?25h"
+)
+
 func (l *Logger) writeln(msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.fancy && l.stepWritten.Load() {
-		msg = cursorUpOne + clearLine + carriageReturn + msg
-	}
 	fmt.Fprintln(l.out, msg)
+}
+
+func (l *Logger) write(msg string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	fmt.Fprint(l.out, msg)
+}
+
+// writeInPlace handles writing status logs, where when "fancy" output is
+// enabled we write the header and message on two lines and then overwrite
+// those two lines on every subsequent in-place write.
+//
+// In non-fancy mode, the header and message are written to a single line
+// without any overwriting/clearing.
+func (l *Logger) writeInPlace(header string, msg string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.fancy {
+		// only clear previous two lines after the first in-place write
+		if l.inPlaceWrites.Add(1) > 1 {
+			fmt.Fprint(l.out, hideCursor+cursorUpTwo+carriageReturn+clearToEnd)
+		}
+		fmt.Fprintln(l.out, " ", header)
+		fmt.Fprintln(l.out, "  ↳", msg)
+	} else {
+		fmt.Fprintln(l.out, header, "→", msg)
+	}
 }
 
 func (l *Logger) precomputeColumnWidths(root Root) {
