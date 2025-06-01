@@ -16,11 +16,13 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode/utf8"
 
 	"github.com/fatih/color"
 	renameio "github.com/google/renameio/v2"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	"golang.org/x/term"
 
 	"github.com/mccutchen/ghavm/internal/slogctx"
 )
@@ -571,8 +573,8 @@ func (l *Logger) writeInPlace(header string, msg string) {
 		if l.inPlaceWrites.Add(1) > 1 {
 			fmt.Fprint(l.out, hideCursor+cursorUpTwo+carriageReturn+clearToEnd)
 		}
-		fmt.Fprintln(l.out, " ", header)
-		fmt.Fprintln(l.out, "  ↳", msg)
+		fmt.Fprintln(l.out, l.truncateLine("  "+header))
+		fmt.Fprintln(l.out, l.truncateLine("  ↳ "+msg))
 	} else {
 		fmt.Fprintln(l.out, header, "→", msg)
 	}
@@ -585,6 +587,76 @@ func (l *Logger) precomputeColumnWidths(root Root) {
 			l.stepWidth = max(l.stepWidth, len(step.Action.Name))
 		}
 	}
+}
+
+func (l *Logger) truncateLine(line string) string {
+	const minWidth = 40
+	if width := l.getTerminalWidth(); width > minWidth {
+		return truncateToDisplayWidth(line, width)
+	}
+	return line
+}
+
+func (l *Logger) getTerminalWidth() int {
+	if fd := int(os.Stdout.Fd()); term.IsTerminal(fd) {
+		if width, _, err := term.GetSize(fd); err == nil {
+			return width
+		}
+	}
+	return 0
+}
+
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// getDisplayWidth returns the visual width of a string, ignoring ANSI escape sequences
+func getDisplayWidth(s string) int {
+	cleaned := ansiRegex.ReplaceAllString(s, "")
+	return utf8.RuneCountInString(cleaned)
+}
+
+// truncateToDisplayWidth truncates a string to fit within the given width,
+// preserving ANSI escape sequences and adding ellipsis if needed
+func truncateToDisplayWidth(s string, width int) string {
+	if getDisplayWidth(s) <= width {
+		return s
+	}
+
+	if width <= 3 {
+		return "..."
+	}
+
+	targetWidth := width - 3 // reserve space for "..."
+	result := ""
+	currentWidth := 0
+
+	// Split into ANSI sequences and regular text
+	parts := ansiRegex.Split(s, -1)
+	sequences := ansiRegex.FindAllString(s, -1)
+
+	for i, part := range parts {
+		partWidth := utf8.RuneCountInString(part)
+
+		if currentWidth+partWidth <= targetWidth {
+			result += part
+			currentWidth += partWidth
+		} else {
+			// Truncate this part to fit exactly
+			remaining := targetWidth - currentWidth
+			if remaining > 0 {
+				runes := []rune(part)
+				result += string(runes[:remaining])
+			}
+			result += "..."
+			break
+		}
+
+		// Add the ANSI sequence that follows this part (if any)
+		if i < len(sequences) {
+			result += sequences[i]
+		}
+	}
+
+	return result
 }
 
 type DiagnosticRecord struct {
