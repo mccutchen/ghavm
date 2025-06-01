@@ -63,24 +63,24 @@ var (
 type Engine struct {
 	root        Root
 	gh          *GitHubClient
+	phaseLog    *PhaseLogger
 	parallelism int
 	strict      bool
-	log         *ProgressLogger
 }
 
 // newEngine creates a new [Engine].
 func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Writer, strict bool, verbose bool) *Engine {
-	log := &ProgressLogger{
+	phaseLog := &PhaseLogger{
 		out:   logOut,
 		fancy: !verbose && !color.NoColor,
 	}
-	log.precomputeColumnWidths(root)
+	phaseLog.precomputeColumnWidths(root)
 	return &Engine{
-		gh:          ghClient,
 		root:        root,
+		gh:          ghClient,
+		phaseLog:    phaseLog,
 		parallelism: parallelism,
 		strict:      strict,
-		log:         log,
 	}
 }
 
@@ -144,11 +144,11 @@ func (e *Engine) Pin(ctx context.Context, mode PinMode) error {
 	if err := e.resolveSteps(ctx, mode); err != nil {
 		return fmt.Errorf("failed to resolve commit refs: %w", err)
 	}
-	e.log.StartPhase("pinning %d action(s) to immutable hashes for their %s versions in %d workflow(s) ...", e.root.StepCount(), mode, e.root.WorkflowCount())
+	e.phaseLog.StartPhase("pinning %d action(s) to immutable hashes for their %s versions in %d workflow(s) ...", e.root.StepCount(), mode, e.root.WorkflowCount())
 	if err := e.rewriteWorkflows(ctx, rewriteStrategyForMode(mode)); err != nil {
 		return fmt.Errorf("upgrade failed: %w", err)
 	}
-	e.log.FinishSection("done!")
+	e.phaseLog.FinishSection("done!")
 	return nil
 }
 
@@ -262,7 +262,7 @@ func chooseUpgrade(step Step, mode PinMode) Release {
 //
 // Each step is mutated in-place as it is resolved.
 func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
-	e.log.StartPhase("resolving action versions for %d step(s) across %d workflow(s) with %d workers ...", e.root.StepCount(), e.root.WorkflowCount(), e.parallelism)
+	e.phaseLog.StartPhase("resolving action versions for %d step(s) across %d workflow(s) with %d workers ...", e.root.StepCount(), e.root.WorkflowCount(), e.parallelism)
 
 	// we can skip the extra work of resolving up to two different upgrade
 	// versions if we're only interested in the current versions of our
@@ -291,7 +291,7 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 					continue
 				}
 				err = fmt.Errorf("failed to acquire semaphore: %w", err)
-				e.log.PhaseError(workflow, step, err)
+				e.phaseLog.Error(workflow, step, err)
 				if e.strict {
 					return err
 				}
@@ -300,7 +300,7 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 			g.Go(func() error {
 				defer sem.Release(1)
 				if err := e.resolveStep(ctx, workflow, step, fetchUpgrades); err != nil {
-					e.log.PhaseError(workflow, step, err)
+					e.phaseLog.Error(workflow, step, err)
 					if e.strict {
 						return err
 					}
@@ -313,8 +313,8 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 		return fmt.Errorf("failed to resolve actions: %w", err)
 	}
 
-	e.log.FinishSection("done!")
-	e.log.ShowDiagnistics()
+	e.phaseLog.FinishSection("done!")
+	e.phaseLog.ShowDiagnostics()
 	return nil
 }
 
@@ -326,14 +326,14 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 func (e *Engine) resolveStep(ctx context.Context, workflow Workflow, step *Step, fetchUpgrades bool) error {
 	// 1. resolve the version ref (commit, branch, tag, etc) to a specific
 	// commit hash
-	e.log.PhaseInfo(workflow, step, "resolving commit hash for ref %s", step.Action.Ref)
+	e.phaseLog.Info(workflow, step, "resolving commit hash for ref %s", step.Action.Ref)
 	commit, err := e.gh.GetCommitHashForRef(ctx, step.Action.Name, step.Action.Ref)
 	if err != nil {
 		return fmt.Errorf("failed to resolve commit hash for ref %s: %w", step.Action.Ref, err)
 	}
 
 	// 2a. attempt to find any semver tags pointing to the resolved commit hash.
-	e.log.PhaseInfo(workflow, step, "resolving semver tags for commit hash %s", commit)
+	e.phaseLog.Info(workflow, step, "resolving semver tags for commit hash %s", commit)
 	versions, err := e.gh.GetVersionTagsForCommitHash(ctx, step.Action.Name, commit)
 	if err != nil {
 		return fmt.Errorf("failed to fetch version tags for resolved commit %s: %w", commit, err)
@@ -369,12 +369,12 @@ func (e *Engine) resolveStep(ctx context.Context, workflow Workflow, step *Step,
 	// 3. (optionally) fetch potential upgrade candidate versions for the
 	// current release.
 	if fetchUpgrades {
-		e.log.PhaseInfo(workflow, step, "finding upgrade candidates for version %s", step.Action.Release.Version)
+		e.phaseLog.Info(workflow, step, "finding upgrade candidates for version %s", step.Action.Release.Version)
 		candidates, err := e.gh.GetUpgradeCandidates(ctx, step.Action.Name, step.Action.Release)
 		if err != nil {
-			e.log.PhaseError(workflow, step, fmt.Errorf("failed to get upgrade candidates for version %s: %w", step.Action.Release.Version, err))
+			e.phaseLog.Error(workflow, step, fmt.Errorf("failed to get upgrade candidates for version %s: %w", step.Action.Release.Version, err))
 		} else if candidates == (UpgradeCandidates{}) {
-			e.log.PhaseWarn(workflow, step, fmt.Sprintf("no upgrade candidates found for version %s", step.Action.Release.Version))
+			e.phaseLog.Warn(workflow, step, fmt.Sprintf("no upgrade candidates found for version %s", step.Action.Release.Version))
 		}
 		step.Action.UpgradeCandidates = candidates
 	}
@@ -441,9 +441,9 @@ type DiagnosticRecord struct {
 	Msg   string
 }
 
-// ProgressLogger is a minimal, tightly coupled logger providing visibility
+// PhaseLogger is a minimal, tightly coupled logger providing visibility
 // into an [Engine]'s progress.
-type ProgressLogger struct {
+type PhaseLogger struct {
 	mu          sync.Mutex
 	out         io.Writer
 	diagnostics map[string][]DiagnosticRecord // workflow path -> records
@@ -457,7 +457,7 @@ type ProgressLogger struct {
 }
 
 // StartPhase logs a header line marking a new phase.
-func (pl *ProgressLogger) StartPhase(msg string, args ...any) {
+func (pl *PhaseLogger) StartPhase(msg string, args ...any) {
 	if pl.phaseStarted.Swap(true) {
 		panic("ProgressLogger: current phase must be finished before starting new phase with msg: " + msg)
 	}
@@ -465,7 +465,7 @@ func (pl *ProgressLogger) StartPhase(msg string, args ...any) {
 }
 
 // FinishSection logs a footer line marking the end of a phase.
-func (pl *ProgressLogger) FinishSection(msg string, args ...any) {
+func (pl *PhaseLogger) FinishSection(msg string, args ...any) {
 	if !pl.phaseStarted.Swap(false) {
 		panic("ProgressLogger: no phase to finish with msg: " + msg)
 	}
@@ -485,25 +485,25 @@ func (pl *ProgressLogger) FinishSection(msg string, args ...any) {
 	pl.writeln("")
 }
 
-// PhaseInfo logs an info-level message for a specific [Workflow] and [Step].
-func (pl *ProgressLogger) PhaseInfo(workflow Workflow, step *Step, msg string, args ...any) {
+// Info logs an info-level message for a specific [Workflow] and [Step].
+func (pl *PhaseLogger) Info(workflow Workflow, step *Step, msg string, args ...any) {
 	pl.logPhaseStatus(LevelInfo, workflow, step, msg, args...)
 }
 
-// PhaseWarn logs an error-level message for a specific [Workflow] and [Step].
-func (pl *ProgressLogger) PhaseWarn(workflow Workflow, step *Step, msg string, args ...any) {
+// Warn logs an error-level message for a specific [Workflow] and [Step].
+func (pl *PhaseLogger) Warn(workflow Workflow, step *Step, msg string, args ...any) {
 	msg = fmt.Sprintf(msg, args...)
 	pl.logPhaseStatus(LevelWarn, workflow, step, msg)
 	pl.addDiagnostic(LevelWarn, workflow, step, msg)
 }
 
-// PhaseError logs an error-level message for a specific [Workflow] and [Step].
-func (pl *ProgressLogger) PhaseError(workflow Workflow, step *Step, err error) {
+// Error logs an error-level message for a specific [Workflow] and [Step].
+func (pl *PhaseLogger) Error(workflow Workflow, step *Step, err error) {
 	pl.logPhaseStatus(LevelError, workflow, step, err.Error())
 	pl.addDiagnostic(LevelError, workflow, step, err.Error())
 }
 
-func (pl *ProgressLogger) logPhaseStatus(level Level, workflow Workflow, step *Step, msg string, args ...any) {
+func (pl *PhaseLogger) logPhaseStatus(level Level, workflow Workflow, step *Step, msg string, args ...any) {
 	if !pl.phaseStarted.Load() {
 		panic("ProgressLogger: phase must be started before updating status: " + msg)
 	}
@@ -519,7 +519,7 @@ func (pl *ProgressLogger) logPhaseStatus(level Level, workflow Workflow, step *S
 	pl.writeInPlace(header, msg)
 }
 
-func (pl *ProgressLogger) addDiagnostic(level Level, w Workflow, s *Step, msg string) {
+func (pl *PhaseLogger) addDiagnostic(level Level, w Workflow, s *Step, msg string) {
 	pl.mu.Lock()
 	defer pl.mu.Unlock()
 	if pl.diagnostics == nil {
@@ -534,7 +534,7 @@ func (pl *ProgressLogger) addDiagnostic(level Level, w Workflow, s *Step, msg st
 }
 
 // ShowDiagnostics shows renders all diagnostics accumulated during a phase.
-func (pl *ProgressLogger) ShowDiagnistics() {
+func (pl *PhaseLogger) ShowDiagnostics() {
 	pl.mu.Lock()
 	defer pl.mu.Unlock()
 
@@ -572,16 +572,16 @@ const (
 	showCursor     = "\033[?25h"
 )
 
-func (l *ProgressLogger) writeln(msg string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	fmt.Fprintln(l.out, msg)
+func (pl *PhaseLogger) writeln(msg string) {
+	pl.mu.Lock()
+	defer pl.mu.Unlock()
+	fmt.Fprintln(pl.out, msg)
 }
 
-func (l *ProgressLogger) write(msg string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	fmt.Fprint(l.out, msg)
+func (pl *PhaseLogger) write(msg string) {
+	pl.mu.Lock()
+	defer pl.mu.Unlock()
+	fmt.Fprint(pl.out, msg)
 }
 
 // writeInPlace handles writing status logs, where when "fancy" output is
@@ -590,39 +590,39 @@ func (l *ProgressLogger) write(msg string) {
 //
 // In non-fancy mode, the header and message are written to a single line
 // without any overwriting/clearing.
-func (l *ProgressLogger) writeInPlace(header string, msg string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if l.fancy {
+func (pl *PhaseLogger) writeInPlace(header string, msg string) {
+	pl.mu.Lock()
+	defer pl.mu.Unlock()
+	if pl.fancy {
 		// only clear previous two lines after the first in-place write
-		if l.inPlaceWrites.Add(1) > 1 {
-			fmt.Fprint(l.out, hideCursor+cursorUpTwo+carriageReturn+clearToEnd)
+		if pl.inPlaceWrites.Add(1) > 1 {
+			fmt.Fprint(pl.out, hideCursor+cursorUpTwo+carriageReturn+clearToEnd)
 		}
-		fmt.Fprintln(l.out, l.truncateLine("  "+header))
-		fmt.Fprintln(l.out, l.truncateLine("  ↳ "+msg))
+		fmt.Fprintln(pl.out, pl.truncateLine("  "+header))
+		fmt.Fprintln(pl.out, pl.truncateLine("  ↳ "+msg))
 	} else {
-		fmt.Fprintln(l.out, header, "→", msg)
+		fmt.Fprintln(pl.out, header, "→", msg)
 	}
 }
 
-func (l *ProgressLogger) precomputeColumnWidths(root Root) {
+func (pl *PhaseLogger) precomputeColumnWidths(root Root) {
 	for _, workflow := range root.Workflows {
-		l.workflowWidth = max(l.workflowWidth, len(filepath.Base(workflow.FilePath)))
+		pl.workflowWidth = max(pl.workflowWidth, len(filepath.Base(workflow.FilePath)))
 		for _, step := range workflow.Steps {
-			l.stepWidth = max(l.stepWidth, len(step.Action.Name))
+			pl.stepWidth = max(pl.stepWidth, len(step.Action.Name))
 		}
 	}
 }
 
-func (l *ProgressLogger) truncateLine(line string) string {
+func (pl *PhaseLogger) truncateLine(line string) string {
 	const minWidth = 40
-	if width := l.getTerminalWidth(); width > minWidth {
+	if width := pl.getTerminalWidth(); width > minWidth {
 		return truncateToDisplayWidth(line, width)
 	}
 	return line
 }
 
-func (l *ProgressLogger) getTerminalWidth() int {
+func (pl *PhaseLogger) getTerminalWidth() int {
 	if fd := int(os.Stdout.Fd()); term.IsTerminal(fd) {
 		if width, _, err := term.GetSize(fd); err == nil {
 			return width
