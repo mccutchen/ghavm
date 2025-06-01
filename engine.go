@@ -16,11 +16,13 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode/utf8"
 
 	"github.com/fatih/color"
 	renameio "github.com/google/renameio/v2"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	"golang.org/x/term"
 
 	"github.com/mccutchen/ghavm/internal/slogctx"
 )
@@ -416,14 +418,6 @@ func matchEOL(line string) string {
 	return eolPattern.FindString(line)
 }
 
-const (
-	cursorUpOne    = "\033[1A"
-	clearLine      = "\033[2K"
-	carriageReturn = "\r"
-	hideCursor     = "\033[?25l"
-	showCursor     = "\033[?25h"
-)
-
 // Level is a logging/diagnostics level.
 type Level slog.Level
 
@@ -447,14 +441,25 @@ type Logger struct {
 	diagnostics map[string][]DiagnosticRecord // workflow path -> records
 
 	fancy         bool
-	stepWritten   atomic.Bool
 	workflowWidth int
 	stepWidth     int
+	inPlaceWrites atomic.Int64
 }
 
 // StartSection logs a header line marking a new phase.
 func (l *Logger) StartSection(msg string, args ...any) {
 	l.writeln(boldf(msg, args...))
+}
+
+// FinishSection logs a footer line marking the end of a phase.
+func (l *Logger) FinishSection(msg string, args ...any) {
+	// only clear and overwrite previous two lines if we actually did any
+	// previous in-place writes
+	if l.inPlaceWrites.Swap(0) > 1 {
+		l.write(cursorUpTwo + carriageReturn + clearToEnd + showCursor)
+	}
+	l.writeln(boldf(msg, args...))
+	l.writeln("")
 }
 
 // StepInfo logs an info-level message for a specific [Workflow] and [Step].
@@ -475,26 +480,19 @@ func (l *Logger) StepError(workflow Workflow, step *Step, err error) {
 	l.addDiagnostic(LevelError, workflow, step, err.Error())
 }
 
-// FinishSection logs a footer line marking the end of a phase.
-func (l *Logger) FinishSection(msg string, args ...any) {
-	l.writeln(boldf(msg, args...))
-	l.stepWritten.Store(false)
-	l.writeln("")
-}
-
 func (l *Logger) stepLog(level Level, workflow Workflow, step *Step, msg string, args ...any) {
-	prefixTmpl := fmt.Sprintf("file=%%-%ds action=%%-%ds → ", l.workflowWidth, l.stepWidth)
-	prefix := fmt.Sprintf(prefixTmpl, filepath.Base(workflow.FilePath), step.Action.Name)
-	msg = fmt.Sprintf(prefix+msg, args...)
+	headerTmpl := fmt.Sprintf("workflow=%%-%ds action=%%-%ds", l.workflowWidth, l.stepWidth)
+	header := fmt.Sprintf(headerTmpl, bold(filepath.Base(workflow.FilePath)), bold(step.Action.Name))
+	msg = fmt.Sprintf(msg, args...)
 	switch level {
 	case LevelError:
 		msg = red(msg)
 	case LevelWarn:
 		msg = yellow(msg)
 	}
-	l.writeln(msg)
-	l.stepWritten.Store(true)
+	l.writeInPlace(header, msg)
 }
+
 func (l *Logger) addDiagnostic(level Level, w Workflow, s *Step, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -541,13 +539,45 @@ func (l *Logger) ShowDiagnistics() {
 	fmt.Fprintln(l.out)
 }
 
+const (
+	cursorUpTwo    = "\033[2A"
+	clearToEnd     = "\033[0J" // clear from cursor to end of screen
+	carriageReturn = "\r"
+	hideCursor     = "\033[?25l"
+	showCursor     = "\033[?25h"
+)
+
 func (l *Logger) writeln(msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.fancy && l.stepWritten.Load() {
-		msg = cursorUpOne + clearLine + carriageReturn + msg
-	}
 	fmt.Fprintln(l.out, msg)
+}
+
+func (l *Logger) write(msg string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	fmt.Fprint(l.out, msg)
+}
+
+// writeInPlace handles writing status logs, where when "fancy" output is
+// enabled we write the header and message on two lines and then overwrite
+// those two lines on every subsequent in-place write.
+//
+// In non-fancy mode, the header and message are written to a single line
+// without any overwriting/clearing.
+func (l *Logger) writeInPlace(header string, msg string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.fancy {
+		// only clear previous two lines after the first in-place write
+		if l.inPlaceWrites.Add(1) > 1 {
+			fmt.Fprint(l.out, hideCursor+cursorUpTwo+carriageReturn+clearToEnd)
+		}
+		fmt.Fprintln(l.out, l.truncateLine("  "+header))
+		fmt.Fprintln(l.out, l.truncateLine("  ↳ "+msg))
+	} else {
+		fmt.Fprintln(l.out, header, "→", msg)
+	}
 }
 
 func (l *Logger) precomputeColumnWidths(root Root) {
@@ -557,6 +587,76 @@ func (l *Logger) precomputeColumnWidths(root Root) {
 			l.stepWidth = max(l.stepWidth, len(step.Action.Name))
 		}
 	}
+}
+
+func (l *Logger) truncateLine(line string) string {
+	const minWidth = 40
+	if width := l.getTerminalWidth(); width > minWidth {
+		return truncateToDisplayWidth(line, width)
+	}
+	return line
+}
+
+func (l *Logger) getTerminalWidth() int {
+	if fd := int(os.Stdout.Fd()); term.IsTerminal(fd) {
+		if width, _, err := term.GetSize(fd); err == nil {
+			return width
+		}
+	}
+	return 0
+}
+
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// getDisplayWidth returns the visual width of a string, ignoring ANSI escape sequences
+func getDisplayWidth(s string) int {
+	cleaned := ansiRegex.ReplaceAllString(s, "")
+	return utf8.RuneCountInString(cleaned)
+}
+
+// truncateToDisplayWidth truncates a string to fit within the given width,
+// preserving ANSI escape sequences and adding ellipsis if needed
+func truncateToDisplayWidth(s string, width int) string {
+	if getDisplayWidth(s) <= width {
+		return s
+	}
+
+	if width <= 3 {
+		return "..."
+	}
+
+	targetWidth := width - 3 // reserve space for "..."
+	result := ""
+	currentWidth := 0
+
+	// Split into ANSI sequences and regular text
+	parts := ansiRegex.Split(s, -1)
+	sequences := ansiRegex.FindAllString(s, -1)
+
+	for i, part := range parts {
+		partWidth := utf8.RuneCountInString(part)
+
+		if currentWidth+partWidth <= targetWidth {
+			result += part
+			currentWidth += partWidth
+		} else {
+			// Truncate this part to fit exactly
+			remaining := targetWidth - currentWidth
+			if remaining > 0 {
+				runes := []rune(part)
+				result += string(runes[:remaining])
+			}
+			result += "..."
+			break
+		}
+
+		// Add the ANSI sequence that follows this part (if any)
+		if i < len(sequences) {
+			result += sequences[i]
+		}
+	}
+
+	return result
 }
 
 type DiagnosticRecord struct {
