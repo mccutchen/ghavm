@@ -11,8 +11,9 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/mccutchen/ghavm/internal/slogctx"
 	"github.com/spf13/cobra"
+
+	"github.com/mccutchen/ghavm/internal/slogctx"
 )
 
 func main() {
