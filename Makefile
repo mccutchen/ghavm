@@ -63,9 +63,10 @@ test-reset-golden-fixtures: build
 	for d in testdata/golden/*.outdir; do cp -r testdata/workflows/*.y*ml $$d; done
 	@echo ""
 	@echo "=================================================================="
-	@echo 'regenerating golden file for `ghavm list`'
+	@echo 'regenerating golden files for `ghavm list`'
 	@echo "=================================================================="
-	$(OUT_DIR)/ghavm list    testdata/workflows/ | tee testdata/golden/cmd-list.stdout
+	$(OUT_DIR)/ghavm list --workers=1 --color=never  testdata/workflows/ >testdata/golden/cmd-list-plain.stdout 2>testdata/golden/cmd-list-plain.stderr 
+	$(OUT_DIR)/ghavm list --workers=1 --color=always testdata/workflows/ >testdata/golden/cmd-list-color.stdout 2>testdata/golden/cmd-list-color.stderr
 	@echo ""
 	@echo "=================================================================="
 	@echo 'regenerating golden file for `ghavm pin`'

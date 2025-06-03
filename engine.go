@@ -18,13 +18,13 @@ import (
 	"sync/atomic"
 	"unicode/utf8"
 
-	"github.com/fatih/color"
 	renameio "github.com/google/renameio/v2"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
 
 	"github.com/mccutchen/ghavm/internal/slogctx"
+	"github.com/mccutchen/ghavm/internal/style"
 )
 
 // PinMode instructs [Engine] how to pin action versions.
@@ -50,37 +50,44 @@ func (m PinMode) String() string {
 	}
 }
 
-var (
-	bold   = color.New(color.Bold).SprintFunc()
-	boldf  = color.New(color.Bold).SprintfFunc()
-	green  = color.New(color.FgGreen).SprintFunc()
-	red    = color.New(color.FgRed).SprintFunc()
-	yellow = color.New(color.FgYellow).SprintFunc()
-)
+// engineOpts customizes engine behavior.
+type engineOpts struct {
+	// Workers defines the number of worker threads used to resolve actions.
+	Workers int
+	// Strict enables strict mode, where any action resolution failure aborts
+	// the entire process.
+	Strict bool
+	// Fancy enables "fancy" terminal output via ANSI escape sequences.
+	Fancy bool
+}
 
 // Engine manages the version upgrade process, from resolving current versions
 // to choosing upgrade candidates to applying upgrades.
 type Engine struct {
-	root        Root
-	gh          *GitHubClient
-	phaseLog    *PhaseLogger
-	parallelism int
-	strict      bool
+	root     Root
+	gh       *GitHubClient
+	workers  int
+	strict   bool
+	style    *style.Style
+	phaseLog *PhaseLogger
 }
 
 // newEngine creates a new [Engine].
-func newEngine(root Root, ghClient *GitHubClient, parallelism int, logOut io.Writer, strict bool, verbose bool) *Engine {
+func newEngine(root Root, ghClient *GitHubClient, logOut io.Writer, opts engineOpts) *Engine {
+	style := style.New(opts.Fancy)
 	phaseLog := &PhaseLogger{
 		out:   logOut,
-		fancy: !verbose && !color.NoColor,
+		fancy: opts.Fancy,
+		style: style,
 	}
 	phaseLog.precomputeColumnWidths(root)
 	return &Engine{
-		root:        root,
-		gh:          ghClient,
-		phaseLog:    phaseLog,
-		parallelism: parallelism,
-		strict:      strict,
+		root:     root,
+		gh:       ghClient,
+		workers:  min(opts.Workers, 1),
+		strict:   opts.Strict,
+		style:    style,
+		phaseLog: phaseLog,
 	}
 }
 
@@ -97,7 +104,7 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 		if len(w.Steps) == 0 {
 			continue
 		}
-		fmt.Fprintf(dst, "workflow %s", bold(filepath.Base(w.FilePath)))
+		fmt.Fprintf(dst, "workflow %s", e.style.Bold(filepath.Base(w.FilePath)))
 		fmt.Fprintln(dst)
 		for _, s := range w.Steps {
 			var (
@@ -105,10 +112,10 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 				latest  = s.Action.UpgradeCandidates.Latest
 				compat  = s.Action.UpgradeCandidates.LatestCompatible
 			)
-			fmt.Fprintf(dst, "  action %s versions:", boldf("%s@%s", s.Action.Name, s.Action.Ref))
+			fmt.Fprintf(dst, "  action %s versions:", e.style.Boldf("%s@%s", s.Action.Name, s.Action.Ref))
 			fmt.Fprintln(dst, "")
 			if !current.Exists() {
-				fmt.Fprintln(dst, yellow("    (could not resolve action versions, unable to pin or upgrade)"))
+				fmt.Fprintln(dst, e.style.Yellow("    (could not resolve action versions, unable to pin or upgrade)"))
 				continue
 			}
 			fmt.Fprintln(dst, "    current: "+current.String())
@@ -116,13 +123,13 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 				fmt.Fprintln(dst, "    (no upgrade versions found)")
 				continue
 			} else if latest == current {
-				fmt.Fprintln(dst, green("    ✓ already using latest version"))
+				fmt.Fprintln(dst, e.style.Green("    ✓ already using latest version"))
 				continue
 			}
 			if compat.Exists() {
 				msg := compat.String()
 				if compat == current {
-					msg = green("✓ already using latest compat version")
+					msg = e.style.Green("✓ already using latest compat version")
 				}
 				fmt.Fprintln(dst, "    compat:  "+msg)
 			}
@@ -262,7 +269,7 @@ func chooseUpgrade(step Step, mode PinMode) Release {
 //
 // Each step is mutated in-place as it is resolved.
 func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
-	e.phaseLog.StartPhase("resolving action versions for %d step(s) across %d workflow(s) with %d workers ...", e.root.StepCount(), e.root.WorkflowCount(), e.parallelism)
+	e.phaseLog.StartPhase("resolving action versions for %d step(s) across %d workflow(s) with %d worker(s) ...", e.root.StepCount(), e.root.WorkflowCount(), e.workers)
 
 	// we can skip the extra work of resolving up to two different upgrade
 	// versions if we're only interested in the current versions of our
@@ -271,7 +278,7 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 
 	g, ctx := errgroup.WithContext(ctx)
 	var (
-		sem          = semaphore.NewWeighted(int64(e.parallelism))
+		sem          = semaphore.NewWeighted(int64(e.workers))
 		workflowKeys = slices.Sorted(maps.Keys(e.root.Workflows))
 	)
 	for _, key := range workflowKeys {
@@ -448,6 +455,7 @@ type PhaseLogger struct {
 	out         io.Writer
 	diagnostics map[string][]DiagnosticRecord // workflow path -> records
 
+	style         *style.Style
 	fancy         bool
 	workflowWidth int
 	stepWidth     int
@@ -461,7 +469,7 @@ func (pl *PhaseLogger) StartPhase(msg string, args ...any) {
 	if pl.phaseStarted.Swap(true) {
 		panic("ProgressLogger: current phase must be finished before starting new phase with msg: " + msg)
 	}
-	pl.writeln(boldf(msg, args...))
+	pl.writeln(pl.style.Boldf(msg, args...))
 }
 
 // FinishSection logs a footer line marking the end of a phase.
@@ -481,7 +489,7 @@ func (pl *PhaseLogger) FinishSection(msg string, args ...any) {
 	pl.diagnostics = nil
 	pl.mu.Unlock()
 
-	pl.writeln(boldf(msg, args...))
+	pl.writeln(pl.style.Boldf(msg, args...))
 	pl.writeln("")
 }
 
@@ -508,13 +516,13 @@ func (pl *PhaseLogger) logPhaseStatus(level Level, workflow Workflow, step *Step
 		panic("ProgressLogger: phase must be started before updating status: " + msg)
 	}
 	headerTmpl := fmt.Sprintf("workflow=%%-%ds action=%%-%ds", pl.workflowWidth, pl.stepWidth)
-	header := fmt.Sprintf(headerTmpl, bold(filepath.Base(workflow.FilePath)), bold(step.Action.Name))
+	header := fmt.Sprintf(headerTmpl, pl.style.Boldf(filepath.Base(workflow.FilePath)), pl.style.Boldf(step.Action.Name))
 	msg = fmt.Sprintf(msg, args...)
 	switch level {
 	case LevelError:
-		msg = red(msg)
+		msg = pl.style.Red(msg)
 	case LevelWarn:
-		msg = yellow(msg)
+		msg = pl.style.Yellow(msg)
 	}
 	pl.writeInPlace(header, msg)
 }
@@ -544,18 +552,18 @@ func (pl *PhaseLogger) ShowDiagnostics() {
 
 	msgPrefixTmpl := fmt.Sprintf("%%5s %%-%ds → ", pl.stepWidth)
 
-	fmt.Fprintln(pl.out, bold("diagnostics"))
+	fmt.Fprintln(pl.out, pl.style.Boldf("diagnostics"))
 	workflowKeys := slices.Sorted(maps.Keys(pl.diagnostics))
 	for _, workflow := range workflowKeys {
-		fmt.Fprintln(pl.out, " ", bold(workflow))
+		fmt.Fprintln(pl.out, " ", pl.style.Boldf(workflow))
 		for _, rec := range pl.diagnostics[workflow] {
 			msgPrefix := fmt.Sprintf(msgPrefixTmpl, rec.Level, rec.Step.Action.Name)
 			msg := fmt.Sprintf("    %s%s", msgPrefix, rec.Msg)
 			switch rec.Level {
 			case LevelWarn:
-				msg = yellow(msg)
+				msg = pl.style.Yellow(msg)
 			case LevelError:
-				msg = red(msg)
+				msg = pl.style.Red(msg)
 			}
 
 			fmt.Fprintln(pl.out, msg)

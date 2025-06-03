@@ -10,8 +10,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/mccutchen/ghavm/internal/slogctx"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+
+	"github.com/mccutchen/ghavm/internal/slogctx"
 )
 
 func main() {
@@ -103,13 +105,14 @@ Available modes:
 	for _, cmd := range []*cobra.Command{listCmd, pinCmd, upgradeCmd} {
 		cmd.Flags().StringP("github-token", "g", "", "GitHub access token (default: GITHUB_TOKEN env value)")
 		cmd.Flags().StringSliceP("targets", "t", nil, "Limit upgrades to specific actions (e.g. --target actions/checkout)")
-		cmd.Flags().IntP("jobs", "j", runtime.NumCPU(), "Limit parallelism when accessing the GitHub API")
-		cmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging")
+		cmd.Flags().IntP("workers", "w", runtime.NumCPU(), "Limit parallelism when accessing the GitHub API")
 		cmd.Flags().Bool("strict", false, "Strict mode, abort on any error")
+		cmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging")
+		cmd.Flags().String("color", "auto", "Output colored escape sequences based on when, which may be set to either always, auto, or never")
 
 		// set up env var handling
 		cmd.PreRunE = wrapPreRunE(cmd, func(cmd *cobra.Command, _ []string) error {
-			// github-token is required, but we will also take the value from
+			// --github-token is required, but we will also take the value from
 			// the GITHUB_TOKEN env var if found.
 			if f := cmd.Flag("github-token"); !f.Changed {
 				if token := os.Getenv("GITHUB_TOKEN"); token != "" {
@@ -121,13 +124,19 @@ Available modes:
 				}
 			}
 
-			// verbose flag is optional, but we also support setting via env vars
+			// --verbose flag is optional, but we also support setting via env vars
 			if f := cmd.Flag("verbose"); !f.Changed {
 				if verbose := os.Getenv("VERBOSE"); verbose != "" && verbose != "0" && verbose != "false" {
 					if err := f.Value.Set("true"); err != nil {
 						return fmt.Errorf("internals: failed to set value of verbose flag: %w", err)
 					}
 				}
+			}
+
+			// validate --color arg
+			colorArg := cmd.Flag("color").Value.String()
+			if colorArg != "auto" && colorArg != "always" && colorArg != "never" {
+				return fmt.Errorf("--color must be one of \"auto\", \"always\", or \"never\"")
 			}
 
 			return nil
@@ -151,12 +160,13 @@ Available modes:
 
 func listCmd(cmd *cobra.Command, args []string) error {
 	var (
-		flags      = cmd.Flags()
-		token, _   = flags.GetString("github-token")
-		targets, _ = flags.GetStringSlice("target")
-		jobs, _    = flags.GetInt("jobs")
-		strict, _  = flags.GetBool("strict")
-		verbose, _ = flags.GetBool("verbose")
+		flags       = cmd.Flags()
+		token, _    = flags.GetString("github-token")
+		targets, _  = flags.GetStringSlice("target")
+		workers, _  = flags.GetInt("workers")
+		strict, _   = flags.GetBool("strict")
+		verbose, _  = flags.GetBool("verbose")
+		colorArg, _ = flags.GetString("color")
 	)
 	var (
 		ctx      = newAppContext(context.Background(), cmd.ErrOrStderr(), chooseLogLevel(verbose))
@@ -184,7 +194,11 @@ func listCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to scan workflow files: %w", err)
 	}
 
-	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr(), strict, verbose)
+	engine := newEngine(root, ghClient, cmd.ErrOrStderr(), engineOpts{
+		Strict:  strict,
+		Workers: workers,
+		Fancy:   enableFancyOutput(colorArg, verbose),
+	})
 	if err := engine.List(ctx, cmd.OutOrStdout()); err != nil {
 		return err
 	}
@@ -193,12 +207,13 @@ func listCmd(cmd *cobra.Command, args []string) error {
 
 func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 	var (
-		flags      = cmd.Flags()
-		token, _   = flags.GetString("github-token")
-		targets, _ = flags.GetStringSlice("target")
-		jobs, _    = flags.GetInt("jobs")
-		strict, _  = flags.GetBool("strict")
-		verbose, _ = flags.GetBool("verbose")
+		flags       = cmd.Flags()
+		token, _    = flags.GetString("github-token")
+		targets, _  = flags.GetStringSlice("target")
+		workers, _  = flags.GetInt("workers")
+		strict, _   = flags.GetBool("strict")
+		verbose, _  = flags.GetBool("verbose")
+		colorArg, _ = flags.GetString("color")
 	)
 	var (
 		ctx      = newAppContext(context.Background(), cmd.ErrOrStderr(), chooseLogLevel(verbose))
@@ -242,7 +257,11 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// pin or upgrade actions
-	engine := newEngine(root, ghClient, jobs, cmd.ErrOrStderr(), strict, verbose)
+	engine := newEngine(root, ghClient, cmd.ErrOrStderr(), engineOpts{
+		Strict:  strict,
+		Workers: workers,
+		Fancy:   enableFancyOutput(colorArg, verbose),
+	})
 	if err := engine.Pin(ctx, mode); err != nil {
 		return err
 	}
@@ -256,11 +275,30 @@ func newAppContext(ctx context.Context, out io.Writer, level slog.Level) context
 	return slogctx.New(ctx, logger)
 }
 
+// chooseLogLevel returns an appropriate log level based on the given verbose
+// configuration.
 func chooseLogLevel(verbose bool) slog.Level {
 	if verbose {
 		return slog.LevelDebug
 	}
 	return slog.LevelWarn
+}
+
+// enableFancyOutput determines when to enable "fancy" output based on the
+// given --color arg value.
+func enableFancyOutput(colorArg string, verboseArg bool) bool {
+	switch colorArg {
+	case "auto":
+		// defer to fatih/color lib's logic by default
+		// https://github.com/fatih/color/blob/v1.18.0/color.go#L16-L23
+		//
+		// but explicitly disable fancy output when verbose output is enabled.
+		return !color.NoColor && !verboseArg
+	case "always":
+		return true
+	default:
+		return false
+	}
 }
 
 // wrapPreRunE acts as a "middleware" for cobra Command.PreRunE functions.

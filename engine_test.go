@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"embed"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,25 +34,39 @@ func TestIntegrationTests(t *testing.T) {
 
 	// for testing `ghavm list` we just capture stdout and compare it to
 	// a snapshot stored on disk
-	t.Run("ghavm list", func(t *testing.T) {
-		t.Parallel()
-
-		app, stdout, _ := newTestApp()
-		app.SetArgs([]string{
-			"list",
-			filepath.Join("testdata", "workflows"),
-		})
-		assert.NilError(t, app.Execute())
-
-		goldenPath := filepath.Join("testdata", "golden", "cmd-list.stdout")
-		want, err := os.ReadFile(goldenPath)
-		assert.NilError(t, err)
-
-		if stdout.String() != string(want) {
-			diff := diffStrings(t, string(want), stdout.String())
-			t.Errorf("golden test failed: %s:\n\n%s\n\n", goldenPath, diff)
+	for _, forceColor := range []bool{false, true} {
+		arg := "--color=never"
+		pathSuffix := "-plain"
+		if forceColor {
+			arg = "--color=always"
+			pathSuffix = "-color"
 		}
-	})
+		t.Run("ghavm list "+arg, func(t *testing.T) {
+			t.Parallel()
+
+			args := []string{
+				"list",
+				filepath.Join("testdata", "workflows"),
+				"--workers=1", // 1 worker to serialize output for consistency across test runs
+			}
+			if arg != "" {
+				args = append(args, arg)
+			}
+
+			app, stdout, _ := newTestApp()
+			app.SetArgs(args)
+			assert.NilError(t, app.Execute())
+
+			goldenPath := filepath.Join("testdata", "golden", fmt.Sprintf("cmd-list%s.stdout", pathSuffix))
+			want, err := os.ReadFile(goldenPath)
+			assert.NilError(t, err)
+
+			if stdout.String() != string(want) {
+				diff := diffStrings(t, string(want), stdout.String())
+				t.Errorf("golden test failed: %s:\n\n%s\n\n", goldenPath, diff)
+			}
+		})
+	}
 
 	// for testing `ghavm pin` and `ghavm upgrade`, we need to be able to
 	// write to multiple files and compare the results.

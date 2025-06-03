@@ -1,0 +1,72 @@
+workflow [1m01-already-pinned.yaml[22m
+  action [1mmccutchen/ghavm-test-repo@75e35fafbce9720ebaf2c4e8bf1c4950260c35c3[22m versions:
+    current: 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+[32m    ✓ already using latest version[0m
+  action [1mmccutchen/ghavm-test-repo@e31a34957100bbd9e4ef4119114615b944a3a5b1[22m versions:
+    current: e31a34957100bbd9e4ef4119114615b944a3a5b1 @ v4.1.1
+    compat:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo@e31a34957100bbd9e4ef4119114615b944a3a5b1[22m versions:
+    current: e31a34957100bbd9e4ef4119114615b944a3a5b1 @ v4.1.1
+    compat:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo@4ac411f47580d9304c9410d997568adbe7651f35[22m versions:
+    current: 4ac411f47580d9304c9410d997568adbe7651f35 @ v1.1.2
+    compat:  887cee452dfcd94ce9ab022cb7b0263940c41e4a @ v1.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+
+workflow [1m02-semver-unpinned.yaml[22m
+  action [1mmccutchen/ghavm-test-repo@v4.2.3[22m versions:
+    current: 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+[32m    ✓ already using latest version[0m
+  action [1mmccutchen/ghavm-test-repo@v4[22m versions:
+    current: 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+[32m    ✓ already using latest version[0m
+  action [1mmccutchen/ghavm-test-repo@v2[22m versions:
+    current: fd663af41ca3473570136ee6ff8fb80adfae3565 @ v2.2.3
+    compat:  [32m✓ already using latest compat version[0m
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo@v3.2.1[22m versions:
+    current: 3e81467f76a58c3d7a2d6ba3801efd2f81d744e7 @ v3.2.1
+    compat:  3c867123aa53f955575f72c821d4323b632fd96f @ v3.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo@v3.2.1[22m versions:
+    current: 3e81467f76a58c3d7a2d6ba3801efd2f81d744e7 @ v3.2.1
+    compat:  3c867123aa53f955575f72c821d4323b632fd96f @ v3.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo@v4.1.2[22m versions:
+    current: a1c009077548b2c32b31ac1f95899ada0a4de129 @ v4.1.2
+    compat:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+
+workflow [1m03-edge-cases.yml[22m
+  action [1mmccutchen/ghavm-test-repo@c464581d[22m versions:
+    current: c464581d8e7a16dab2029f7a34c81fe75f03a49d @ v2.2.2
+    compat:  fd663af41ca3473570136ee6ff8fb80adfae3565 @ v2.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo@75e35fafbce9720ebaf2c4e8bf1c4950260c35c3[22m versions:
+    current: 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+[32m    ✓ already using latest version[0m
+  action [1mmccutchen/ghavm-test-repo@c09a940bc73914e8d734930e72cf8816613b1b4f[22m versions:
+    current: c09a940bc73914e8d734930e72cf8816613b1b4f @ v0.0.1
+    compat:  84869029ae0e95416be1613c248447cb020e8d93 @ v0.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-nonexistent-repo@v1[22m versions:
+[33m    (could not resolve action versions, unable to pin or upgrade)[0m
+  action [1mmccutchen/ghavm-test-repo@develop[22m versions:
+    current: 46852083c58587e34fd537e1391e5408779f1762
+    (no upgrade versions found)
+  action [1mmccutchen/ghavm-test-repo@feature/new_feature-01[22m versions:
+    current: fd663af41ca3473570136ee6ff8fb80adfae3565 @ v2.2.3
+    compat:  [32m✓ already using latest compat version[0m
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo@v99.99.99[22m versions:
+[33m    (could not resolve action versions, unable to pin or upgrade)[0m
+  action [1mmccutchen/ghavm-test-repo@v3.2.3-annotated[22m versions:
+    current: 3c867123aa53f955575f72c821d4323b632fd96f @ v3.2.3
+    compat:  [32m✓ already using latest compat version[0m
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo@3c867123aa53f955575f72c821d4323b632fd96f[22m versions:
+    current: 3c867123aa53f955575f72c821d4323b632fd96f @ v3.2.3
+    compat:  [32m✓ already using latest compat version[0m
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
