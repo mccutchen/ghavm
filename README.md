@@ -176,20 +176,20 @@ Use "ghavm [command] --help" for more information about a command.
   > Git object payload. When selecting a SHA, you should verify it is from the
   > action's repository and not a repository fork.
 
-- For a good overview of potential attacks enabled by unpinned action versions
-  and a walkthrough of various other ways to manage pinned action versions, see
-  [Pinning GitHub Actions for Enhanced Security: Everything You Should
-  Know][step-sec] from StepSecurity.
+- See [Pinning GitHub Actions for Enhanced Security: Everything You Should
+  Know][step-sec] from StepSecurity for a good overview of potential attacks
+  enabled by unpinned action versions, plus an walkthrough of various other
+  ways to manage pinned action versions.
 
-- And take a look at Wiz's [guide to GitHub Actions security
-  hardening][wiz-sec], which includes an overview of recent high-profile GitHub
-  Actions-based supply chain attacks, some of which may have been mitigated by
-  immutably pinned action versions.
+- See Wiz's [guide to GitHub Actions security hardening][wiz-sec] for recent
+  concrete examples of high-profile GitHub Actions-based supply chain attacks,
+  some of which may have been mitigated by strictly pinned action versions.
 
-### Version pinning does not solve every problem
+### Strict version pinning is not a panacea
 
-While pinning the action versions to immutable commit hashes is a critical step
-in securing GitHub Actions workflows, it does not perfectly mitigate the risks.
+While strictly pinning the action versions to immutable commit hashes is a
+critical step in securing GitHub Actions workflows, it does not perfectly
+mitigate the risks.
 
 In particular, per [the Wiz hardening guide][wiz-sec]:
 
