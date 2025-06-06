@@ -10,6 +10,7 @@ import (
 func TestCLI(t *testing.T) {
 	testCases := map[string]struct {
 		args       []string
+		env        map[string]string
 		wantErr    bool
 		wantStderr string
 	}{
@@ -43,7 +44,13 @@ func TestCLI(t *testing.T) {
 		"invalid color flag": {
 			args:       []string{"list", "--github-token", "fake", "--color", "invalid"},
 			wantErr:    true,
-			wantStderr: `Error: --color must be one of "auto", "always", or "never"`,
+			wantStderr: "Error: --color must be one of: auto, always, never",
+		},
+		"invalid COLOR env var": {
+			args:       []string{"list", "--github-token", "fake"},
+			env:        map[string]string{"COLOR": "invalid"},
+			wantErr:    true,
+			wantStderr: "Error: --color must be one of: auto, always, never",
 		},
 		"invalid upgrade mode": {
 			args:       []string{"upgrade", "--github-token", "fake", "--mode", "invalid"},
@@ -70,9 +77,11 @@ func TestCLI(t *testing.T) {
 	for name, tc := range testCases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			// use empty env for testing CLI errors to ensure we don't
+			// use fake env for testing CLI errors to ensure we don't
 			// accidentally grab a real GITHUB_TOKEN or other env vars.
-			getenv := func(string) string { return "" }
+			getenv := func(key string) string {
+				return tc.env[key]
+			}
 			app, _, stderr := newTestApp(getenv)
 
 			err := runApp(app, tc.args)
