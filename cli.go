@@ -205,7 +205,7 @@ func listCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error finding workflow files: %s", err)
 	}
 	if len(files) == 0 {
-		fmt.Fprintln(cmd.ErrOrStderr(), "warning: no workflows found")
+		fprintln(cmd.ErrOrStderr(), "warning: no workflows found")
 		return nil
 	}
 
@@ -271,7 +271,7 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error finding workflow files: %s", err)
 	}
 	if len(files) == 0 {
-		fmt.Fprintln(cmd.ErrOrStderr(), "warning: no workflows found")
+		fprintln(cmd.ErrOrStderr(), "warning: no workflows found")
 		return nil
 	}
 
@@ -344,3 +344,30 @@ func wrapPreRunE(cmd *cobra.Command, newPreRunE preRunE) preRunE {
 }
 
 type preRunE func(cmd *cobra.Command, args []string) error
+
+// fprintf is fmt.Fprintf that panics on error.
+func fprintf(dst io.Writer, msg string, args ...any) {
+	if _, err := fmt.Fprintf(dst, msg, args...); err != nil {
+		panic("internals: failed to write to output: " + err.Error())
+	}
+}
+
+// fprint is fmt.Fprint that panics on error.
+func fprint(dst io.Writer, args ...any) {
+	if _, err := fmt.Fprint(dst, args...); err != nil {
+		panic("internals: failed to write to output: " + err.Error())
+	}
+}
+
+// fprintln is fmt.Fprintln that panics on error.
+func fprintln(dst io.Writer, args ...any) {
+	if _, err := fmt.Fprintln(dst, args...); err != nil {
+		panic("internals: failed to write to output: " + err.Error())
+	}
+}
+
+func mustClose(closer io.Closer) {
+	if err := closer.Close(); err != nil {
+		panic("internals: failed to close resource: " + err.Error())
+	}
+}

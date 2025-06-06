@@ -792,7 +792,7 @@ func newTestClient(t testing.TB, graphqlEndpoints map[string]httpResponse, restE
 			if resp.status != 0 {
 				w.WriteHeader(resp.status)
 			}
-			fmt.Fprintln(w, resp.body)
+			fprintln(w, resp.body)
 		default:
 			sig := restSig(t, r)
 			resp, ok := restEndpoints[sig]
@@ -803,7 +803,7 @@ func newTestClient(t testing.TB, graphqlEndpoints map[string]httpResponse, restE
 			if resp.status != 0 {
 				w.WriteHeader(resp.status)
 			}
-			fmt.Fprintln(w, resp.body)
+			fprintln(w, resp.body)
 		}
 	}))
 	t.Cleanup(srv.Close)
