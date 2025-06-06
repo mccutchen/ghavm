@@ -18,9 +18,14 @@ import (
 
 func main() {
 	app := newApp(os.Stdin, os.Stdout, os.Stderr)
-	if err := app.Execute(); err != nil {
+	if err := runApp(app, os.Args[1:]); err != nil {
 		os.Exit(1)
 	}
+}
+
+func runApp(app *cobra.Command, args []string) error {
+	app.SetArgs(args)
+	return app.Execute()
 }
 
 func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command {
