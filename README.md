@@ -102,11 +102,11 @@ $ go run github.com/mccutchen/ghavm@latest upgrade --mode=latest
 ```
 
 > [!TIP]
-> The `--exclude` and `--target` flags allow you to limit pinning or upgrading
+> The `--exclude` and `--select` flags allow you to limit pinning or upgrading
 > to a subset of the actions in your workflows.
 >
-> Pass `--exclude "actions/*"` to leave official first-party actions owned by
-> GitHub unpinned.
+> **Example:** Pass `--exclude "actions/*"` to leave official first-party
+> actions owned by GitHub unpinned.
 
 
 ## Installation

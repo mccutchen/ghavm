@@ -52,7 +52,7 @@ func findWorkflowsInDir(dir string) []string {
 
 // scanOpts configures the workflow scanner.
 type scanOpts struct {
-	Targets  []string
+	Selects  []string
 	Excludes []string
 }
 
@@ -86,8 +86,8 @@ func scanFile(filePath string, opts scanOpts) (Workflow, error) {
 		if action == (Action{}) {
 			continue
 		}
-		// Apply target filtering first, then exclude filtering (excludes take precedence)
-		if len(opts.Targets) > 0 && !matchesAnyPattern(action.Name, opts.Targets) {
+		// Apply select filtering first, then exclude filtering (excludes take precedence)
+		if len(opts.Selects) > 0 && !matchesAnyPattern(action.Name, opts.Selects) {
 			continue
 		}
 		if len(opts.Excludes) > 0 && matchesAnyPattern(action.Name, opts.Excludes) {
