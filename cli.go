@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/fatih/color"
@@ -118,9 +119,7 @@ Available modes:
 			// the GITHUB_TOKEN env var if found.
 			if f := cmd.Flag("github-token"); !f.Changed {
 				if token := getenv("GITHUB_TOKEN"); token != "" {
-					if err := f.Value.Set(token); err != nil {
-						return fmt.Errorf("internals: failed to set value of github-token flag: %w", err)
-					}
+					_ = f.Value.Set(token)
 				} else {
 					return fmt.Errorf("either --github-token/-g flag or GITHUB_TOKEN env var are required")
 				}
@@ -129,16 +128,20 @@ Available modes:
 			// --verbose flag is optional, but we also support setting via env vars
 			if f := cmd.Flag("verbose"); !f.Changed {
 				if verbose := getenv("VERBOSE"); verbose != "" && verbose != "0" && verbose != "false" {
-					if err := f.Value.Set("true"); err != nil {
-						return fmt.Errorf("internals: failed to set value of verbose flag: %w", err)
-					}
+					_ = f.Value.Set("true")
 				}
 			}
 
-			// validate --color arg
-			colorArg := cmd.Flag("color").Value.String()
-			if colorArg != "auto" && colorArg != "always" && colorArg != "never" {
-				return fmt.Errorf("--color must be one of \"auto\", \"always\", or \"never\"")
+			// --color arg may be set via COLOR env var and also needs validation
+			validColors := []string{"auto", "always", "never"}
+			colorFlag := cmd.Flag("color")
+			if !colorFlag.Changed {
+				if color := getenv("COLOR"); color != "" {
+					_ = colorFlag.Value.Set(color)
+				}
+			}
+			if colorArg := colorFlag.Value.String(); !slices.Contains(validColors, colorArg) {
+				return fmt.Errorf("--color must be one of: %s", strings.Join(validColors, ", "))
 			}
 
 			// validate --select patterns
