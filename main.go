@@ -43,7 +43,7 @@ func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command 
 
   # list version and available upgrades for all 'actions/setup-go'
   # actions in the current repo
-  ghavm pin --target actions/setup-go`,
+  ghavm list --target actions/setup-go`,
 		RunE: listCmd,
 	}
 
@@ -53,11 +53,14 @@ func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command 
 		Example: `  # pin the versions of all actions in the current repo
   ghavm pin
 
-  # pin the versions of all actions in a specific file
-  ghavm pin .github/workflows/my-workflow.yaml
+  # pin all actions except official first-party GitHub actions
+  ghavm pin --exclude "actions/*"
 
-  # pin all 'actions/setup-go' actions in the current repo
-  ghavm pin --target actions/setup-go`,
+  # pin only 'actions/setup-go' actions in the current repo
+  ghavm pin --target actions/setup-go
+
+  # pin the versions of all actions in a specific file
+  ghavm pin .github/workflows/my-workflow.yaml`,
 		RunE: pinOrUpgradeCmd,
 	}
 
@@ -82,6 +85,9 @@ Available modes:
   # upgrade all actions in the current repo to absolute latest release
   ghavm upgrade --mode=latest
 
+  # upgrade all actions except official first-party GitHub actions
+  ghavm upgrade --exclude "actions/*"
+
   # upgrade all actions in a specific file
   ghavm upgrade .github/workflows/my-workflow.yaml
 
@@ -104,8 +110,8 @@ Available modes:
 	// don't want to define these on the root command)
 	for _, cmd := range []*cobra.Command{listCmd, pinCmd, upgradeCmd} {
 		cmd.Flags().StringP("github-token", "g", "", "GitHub access token (default: GITHUB_TOKEN env value)")
-		cmd.Flags().StringSliceP("targets", "t", nil, "Limit upgrades to specific actions (e.g. --target actions/checkout)")
-		cmd.Flags().StringSliceP("exclude", "e", nil, "Exclude specific actions (e.g. --exclude actions/checkout)")
+		cmd.Flags().StringSliceP("targets", "t", nil, "Limit upgrades to specific actions, with optional wildcards (e.g. --target \"actions/*\" --target codecov/codecov-action)")
+		cmd.Flags().StringSliceP("exclude", "e", nil, "Exclude specific actions, with optional wildcards (e.g. --exclude \"actions/*\" --exclude codecov/codecov-action)")
 		cmd.Flags().IntP("workers", "w", runtime.NumCPU(), "Limit parallelism when accessing the GitHub API")
 		cmd.Flags().Bool("strict", false, "Strict mode, abort on any error")
 		cmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging")
@@ -138,6 +144,24 @@ Available modes:
 			colorArg := cmd.Flag("color").Value.String()
 			if colorArg != "auto" && colorArg != "always" && colorArg != "never" {
 				return fmt.Errorf("--color must be one of \"auto\", \"always\", or \"never\"")
+			}
+
+			// validate --target patterns
+			if targets, _ := cmd.Flags().GetStringSlice("target"); len(targets) > 0 {
+				for _, target := range targets {
+					if err := validatePattern(target); err != nil {
+						return fmt.Errorf("invalid --target pattern: %w", err)
+					}
+				}
+			}
+
+			// validate --exclude patterns
+			if excludes, _ := cmd.Flags().GetStringSlice("exclude"); len(excludes) > 0 {
+				for _, exclude := range excludes {
+					if err := validatePattern(exclude); err != nil {
+						return fmt.Errorf("invalid --exclude pattern: %w", err)
+					}
+				}
 			}
 
 			return nil

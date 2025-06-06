@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
+	"strings"
 )
 
 // FindWorkflows finds any workflow yaml files in the standard location under
@@ -87,10 +87,10 @@ func scanFile(filePath string, opts scanOpts) (Workflow, error) {
 			continue
 		}
 		// Apply target filtering first, then exclude filtering (excludes take precedence)
-		if len(opts.Targets) > 0 && !slices.Contains(opts.Targets, action.Name) {
+		if len(opts.Targets) > 0 && !matchesAnyPattern(action.Name, opts.Targets) {
 			continue
 		}
-		if len(opts.Excludes) > 0 && slices.Contains(opts.Excludes, action.Name) {
+		if len(opts.Excludes) > 0 && matchesAnyPattern(action.Name, opts.Excludes) {
 			continue
 		}
 		steps = append(steps, Step{
@@ -107,6 +107,48 @@ func scanFile(filePath string, opts scanOpts) (Workflow, error) {
 	}, nil
 }
 
+// matchesPattern checks if a string matches a pattern with optional trailing wildcard.
+// Supports patterns like "actions/*" but not complex patterns like "*/setup".
+func matchesPattern(s, pattern string) bool {
+	if strings.HasSuffix(pattern, "*") {
+		prefix := strings.TrimSuffix(pattern, "*")
+		return strings.HasPrefix(s, prefix)
+	}
+	return s == pattern
+}
+
+// matchesAnyPattern checks if a string matches any pattern in the given slice.
+func matchesAnyPattern(s string, patterns []string) bool {
+	for _, pattern := range patterns {
+		if matchesPattern(s, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// validatePattern checks if a pattern is supported. Only trailing wildcards are allowed.
+func validatePattern(pattern string) error {
+	if pattern == "" {
+		return fmt.Errorf("empty pattern not allowed")
+	}
+
+	// Check for unsupported wildcard positions
+	if strings.Contains(pattern, "*") {
+		if !strings.HasSuffix(pattern, "*") {
+			return fmt.Errorf("wildcards are only supported at the end of patterns, got: %q", pattern)
+		}
+		// Ensure there's only one wildcard and it's at the end
+		if strings.Count(pattern, "*") > 1 {
+			return fmt.Errorf("multiple wildcards not supported, got: %q", pattern)
+		}
+	}
+
+	return nil
+}
+
+// usesPattern is a regex that attempts to match "uses:" declarations in a
+// workflow yaml file.
 var usesPattern = regexp.MustCompile(`^\s*-?\s*uses:\s*([\w\-]+/[\w\-]+)@([\w\-\./]+)(?:\s*#.*)?$`)
 
 func maybeParseAction(line string) Action {
