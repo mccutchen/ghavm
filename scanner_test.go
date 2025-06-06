@@ -98,41 +98,59 @@ func TestMaybeParseAction(t *testing.T) {
 }
 
 func TestScanFileFiltering(t *testing.T) {
-	testCases := []struct {
-		name     string
+	testCases := map[string]struct {
 		opts     scanOpts
-		expected []string // expected action names
+		expected []string
 	}{
-		{
-			name:     "no filtering",
+		"no filtering": {
 			opts:     scanOpts{},
 			expected: []string{"actions/setup-go", "actions/checkout", "golangci/golangci-lint-action", "codecov/codecov-action"},
 		},
-		{
-			name:     "targets only",
+		"targets only": {
 			opts:     scanOpts{Targets: []string{"actions/checkout", "codecov/codecov-action"}},
 			expected: []string{"actions/checkout", "codecov/codecov-action"},
 		},
-		{
-			name:     "excludes only",
+		"excludes only": {
 			opts:     scanOpts{Excludes: []string{"actions/setup-go", "golangci/golangci-lint-action"}},
 			expected: []string{"actions/checkout", "codecov/codecov-action"},
 		},
-		{
-			name:     "excludes take precedence over targets",
+		"excludes take precedence over targets": {
 			opts:     scanOpts{Targets: []string{"actions/checkout", "actions/setup-go"}, Excludes: []string{"actions/checkout"}},
 			expected: []string{"actions/setup-go"},
 		},
-		{
-			name:     "exclude all",
+		"exclude all": {
 			opts:     scanOpts{Excludes: []string{"actions/setup-go", "actions/checkout", "golangci/golangci-lint-action", "codecov/codecov-action"}},
+			expected: []string{},
+		},
+		"target wildcard": {
+			opts:     scanOpts{Targets: []string{"actions/*"}},
+			expected: []string{"actions/setup-go", "actions/checkout"},
+		},
+		"exclude wildcard": {
+			opts:     scanOpts{Excludes: []string{"actions/*"}},
+			expected: []string{"golangci/golangci-lint-action", "codecov/codecov-action"},
+		},
+		"mixed exact and wildcard targets": {
+			opts:     scanOpts{Targets: []string{"actions/*", "codecov/codecov-action"}},
+			expected: []string{"actions/setup-go", "actions/checkout", "codecov/codecov-action"},
+		},
+		"mixed exact and wildcard excludes": {
+			opts:     scanOpts{Excludes: []string{"actions/*", "codecov/codecov-action"}},
+			expected: []string{"golangci/golangci-lint-action"},
+		},
+		"wildcard target with exact exclude": {
+			opts:     scanOpts{Targets: []string{"actions/*"}, Excludes: []string{"actions/checkout"}},
+			expected: []string{"actions/setup-go"},
+		},
+		"wildcard exclude takes precedence over wildcard target": {
+			opts:     scanOpts{Targets: []string{"actions/*"}, Excludes: []string{"actions/*"}},
 			expected: []string{},
 		},
 	}
 
-	for _, tc := range testCases {
+	for name, tc := range testCases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			workflow, err := scanFile("testdata/example.yaml", tc.opts)
 			assert.NilError(t, err)
 
@@ -142,6 +160,45 @@ func TestScanFileFiltering(t *testing.T) {
 			}
 
 			assert.DeepEqual(t, actualNames, tc.expected, "filtered action names should match expected")
+		})
+	}
+}
+
+func TestValidatePattern(t *testing.T) {
+	validCases := []string{
+		"*",
+		"actions/*",
+		"actions/checkout",
+		"actions/setup-*",
+		"custom/action",
+		"github/*",
+	}
+
+	for _, pattern := range validCases {
+		t.Run("valid/"+pattern, func(t *testing.T) {
+			err := validatePattern(pattern)
+			assert.NilError(t, err)
+		})
+	}
+
+	invalidCases := []struct {
+		pattern string
+		wantErr string
+	}{
+		{"", "empty pattern not allowed"},
+		{"*/*", "multiple wildcards not supported"},
+		{"*/setup", "wildcards are only supported at the end of patterns"},
+		{"act*/setup", "wildcards are only supported at the end of patterns"},
+		{"actions/**", "multiple wildcards not supported"},
+	}
+
+	for _, tc := range invalidCases {
+		t.Run("invalid/"+tc.pattern, func(t *testing.T) {
+			err := validatePattern(tc.pattern)
+			if err == nil {
+				t.Fatal("expected error but got nil")
+			}
+			assert.Contains(t, err.Error(), tc.wantErr, "error message")
 		})
 	}
 }
