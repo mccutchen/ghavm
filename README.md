@@ -61,9 +61,9 @@ $ go run github.com/mccutchen/ghavm@latest pin
            fail_ci_if_error: true
 ```
 
-Eventually, you may need to upgrade them to newer releases, which can be a
-labor-intensive and potentially error-prone process when manually juggling long
-commit hashes.
+Eventually, you may need to upgrade your actions to newer releases, which
+can be a labor-intensive and potentially error-prone process when manually
+juggling long commit hashes.
 
 The `ghavm upgrade` makes it easy to **upgrade a workflow's actions** to their
 latest "compatible" release or latest available release:
@@ -103,6 +103,11 @@ $ go run github.com/mccutchen/ghavm@latest upgrade --mode=latest
            fail_ci_if_error: true
 ```
 
+> [!TIP]
+> Pass `--target`/`-t` to limit pinning or upgrading to one or more specific
+> actions, instead of operating on every action at once.
+
+
 ## Installation
 
 Until we publish prebuilt binaries, you'll need a Go toolchain to install
@@ -117,6 +122,7 @@ Or, run it directly without explicit installation:
 ```bash
 go run github.com/mccutchen/ghavm@latest
 ```
+
 
 ## Usage
 
@@ -139,6 +145,7 @@ Flags:
 
 Use "ghavm [command] --help" for more information about a command.
 ```
+
 
 ## Security best practices
 
@@ -199,6 +206,7 @@ party actions not owned by GitHub itself.
 - StepSecurity's [7 GitHub Actions Security Best Practices][step-sec] guide
 - GitGuardian's [GitHub Actions Security Best Practices][gg-sec] guide
 
+
 ## Prior art and other tools
 
 There are a number of other tools offering similar functionality:
@@ -213,6 +221,7 @@ There are a number of other tools offering similar functionality:
 
   **Most users should probably consider dependabot instead of `ghavm` to
   actually automate version-pinned security updates!**
+
 
 ## License
 
