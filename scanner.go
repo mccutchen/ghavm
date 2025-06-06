@@ -86,7 +86,7 @@ func scanFile(filePath string, opts scanOpts) (Workflow, error) {
 		if action == (Action{}) {
 			continue
 		}
-		// Apply select filtering first, then exclude filtering (excludes take precedence)
+		// Excludes take precedence, so we select first then exclude
 		if len(opts.Selects) > 0 && !matchesAnyPattern(action.Name, opts.Selects) {
 			continue
 		}
