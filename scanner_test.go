@@ -96,3 +96,52 @@ func TestMaybeParseAction(t *testing.T) {
 		})
 	}
 }
+
+func TestScanFileFiltering(t *testing.T) {
+	testCases := []struct {
+		name     string
+		opts     scanOpts
+		expected []string // expected action names
+	}{
+		{
+			name:     "no filtering",
+			opts:     scanOpts{},
+			expected: []string{"actions/setup-go", "actions/checkout", "golangci/golangci-lint-action", "codecov/codecov-action"},
+		},
+		{
+			name:     "targets only",
+			opts:     scanOpts{Targets: []string{"actions/checkout", "codecov/codecov-action"}},
+			expected: []string{"actions/checkout", "codecov/codecov-action"},
+		},
+		{
+			name:     "excludes only",
+			opts:     scanOpts{Excludes: []string{"actions/setup-go", "golangci/golangci-lint-action"}},
+			expected: []string{"actions/checkout", "codecov/codecov-action"},
+		},
+		{
+			name:     "excludes take precedence over targets",
+			opts:     scanOpts{Targets: []string{"actions/checkout", "actions/setup-go"}, Excludes: []string{"actions/checkout"}},
+			expected: []string{"actions/setup-go"},
+		},
+		{
+			name:     "exclude all",
+			opts:     scanOpts{Excludes: []string{"actions/setup-go", "actions/checkout", "golangci/golangci-lint-action", "codecov/codecov-action"}},
+			expected: []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			workflow, err := scanFile("testdata/example.yaml", tc.opts)
+			assert.NilError(t, err)
+
+			actualNames := make([]string, 0, len(workflow.Steps))
+			for _, step := range workflow.Steps {
+				actualNames = append(actualNames, step.Action.Name)
+			}
+
+			assert.DeepEqual(t, actualNames, tc.expected, "filtered action names should match expected")
+		})
+	}
+}

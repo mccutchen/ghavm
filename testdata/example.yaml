@@ -1,0 +1,29 @@
+# A minimal, realistic example workflow, with upgrades available, used for
+# demonstration purposes (e.g. the diffs in README.md)
+name: example workflow
+on:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3.5.0
+        with:
+          version: stable
+
+      - uses: actions/checkout@v4.1.0
+        with:
+          fetch-depth: 1
+
+      - uses: golangci/golangci-lint-action@v6.5.0
+        with:
+          version: latest
+
+      - name: test
+        run: make testci
+
+      - uses: codecov/codecov-action@v4.2.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true

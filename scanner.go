@@ -50,14 +50,20 @@ func findWorkflowsInDir(dir string) []string {
 	return files
 }
 
+// scanOpts configures the workflow scanner.
+type scanOpts struct {
+	Targets  []string
+	Excludes []string
+}
+
 // ScanWorkflows walks the given files and parses them into a tree of
 // workflows and steps.
-func ScanWorkflows(filePaths []string, targetActions []string) (Root, error) {
+func ScanWorkflows(filePaths []string, opts scanOpts) (Root, error) {
 	root := Root{
 		Workflows: make(map[string]Workflow, len(filePaths)),
 	}
 	for _, f := range filePaths {
-		workflow, err := scanFile(f, targetActions)
+		workflow, err := scanFile(f, opts)
 		if err != nil {
 			return Root{}, err
 		}
@@ -66,7 +72,7 @@ func ScanWorkflows(filePaths []string, targetActions []string) (Root, error) {
 	return root, nil
 }
 
-func scanFile(filePath string, targetActions []string) (Workflow, error) {
+func scanFile(filePath string, opts scanOpts) (Workflow, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return Workflow{}, fmt.Errorf("scanner: failed to open file %s: %w", filePath, err)
@@ -80,7 +86,11 @@ func scanFile(filePath string, targetActions []string) (Workflow, error) {
 		if action == (Action{}) {
 			continue
 		}
-		if len(targetActions) > 0 && !slices.Contains(targetActions, action.Name) {
+		// Apply target filtering first, then exclude filtering (excludes take precedence)
+		if len(opts.Targets) > 0 && !slices.Contains(opts.Targets, action.Name) {
+			continue
+		}
+		if len(opts.Excludes) > 0 && slices.Contains(opts.Excludes, action.Name) {
 			continue
 		}
 		steps = append(steps, Step{
