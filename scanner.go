@@ -109,18 +109,18 @@ func scanFile(filePath string, opts scanOpts) (Workflow, error) {
 
 // matchesPattern checks if a string matches a pattern with optional trailing wildcard.
 // Supports patterns like "actions/*" but not complex patterns like "*/setup".
-func matchesPattern(str, pattern string) bool {
+func matchesPattern(s, pattern string) bool {
 	if strings.HasSuffix(pattern, "*") {
 		prefix := strings.TrimSuffix(pattern, "*")
-		return strings.HasPrefix(str, prefix)
+		return strings.HasPrefix(s, prefix)
 	}
-	return str == pattern
+	return s == pattern
 }
 
 // matchesAnyPattern checks if a string matches any pattern in the given slice.
-func matchesAnyPattern(str string, patterns []string) bool {
+func matchesAnyPattern(s string, patterns []string) bool {
 	for _, pattern := range patterns {
-		if matchesPattern(str, pattern) {
+		if matchesPattern(s, pattern) {
 			return true
 		}
 	}
@@ -147,6 +147,8 @@ func validatePattern(pattern string) error {
 	return nil
 }
 
+// usesPattern is a regex that attempts to match "uses:" declarations in a
+// workflow yaml file.
 var usesPattern = regexp.MustCompile(`^\s*-?\s*uses:\s*([\w\-]+/[\w\-]+)@([\w\-\./]+)(?:\s*#.*)?$`)
 
 func maybeParseAction(line string) Action {
