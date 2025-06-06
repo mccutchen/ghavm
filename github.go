@@ -82,7 +82,7 @@ func (c *GitHubClient) doGraphql(ctx context.Context, queryString string, variab
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer mustClose(resp.Body)
 
 	slogctx.Debug(
 		ctx, "github: graphql query",
@@ -121,7 +121,7 @@ func (c *GitHubClient) doREST(ctx context.Context, method string, url string, ta
 	if err != nil {
 		return fmt.Errorf("request failure: %w", err)
 	}
-	defer resp.Body.Close()
+	defer mustClose(resp.Body)
 	slogctx.Debug(
 		ctx, "github: http request",
 		slog.String("method", method),

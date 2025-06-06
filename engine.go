@@ -104,26 +104,25 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 		if len(w.Steps) == 0 {
 			continue
 		}
-		fmt.Fprintf(dst, "workflow %s", e.style.Bold(filepath.Base(w.FilePath)))
-		fmt.Fprintln(dst)
+		fprintln(dst, "workflow", e.style.Bold(filepath.Base(w.FilePath)))
 		for _, s := range w.Steps {
 			var (
 				current = s.Action.Release
 				latest  = s.Action.UpgradeCandidates.Latest
 				compat  = s.Action.UpgradeCandidates.LatestCompatible
 			)
-			fmt.Fprintf(dst, "  action %s versions:", e.style.Boldf("%s@%s", s.Action.Name, s.Action.Ref))
-			fmt.Fprintln(dst, "")
+			fprintf(dst, "  action %s versions:", e.style.Boldf("%s@%s", s.Action.Name, s.Action.Ref))
+			fprintln(dst)
 			if !current.Exists() {
-				fmt.Fprintln(dst, e.style.Yellow("    (could not resolve action versions, unable to pin or upgrade)"))
+				fprintln(dst, e.style.Yellow("    (could not resolve action versions, unable to pin or upgrade)"))
 				continue
 			}
-			fmt.Fprintln(dst, "    current: "+current.String())
+			fprintln(dst, "    current: "+current.String())
 			if s.Action.UpgradeCandidates == (UpgradeCandidates{}) {
-				fmt.Fprintln(dst, "    (no upgrade versions found)")
+				fprintln(dst, "    (no upgrade versions found)")
 				continue
 			} else if latest == current {
-				fmt.Fprintln(dst, e.style.Green("    ✓ already using latest version"))
+				fprintln(dst, e.style.Green("    ✓ already using latest version"))
 				continue
 			}
 			if compat.Exists() {
@@ -131,14 +130,14 @@ func (e *Engine) List(ctx context.Context, dst io.Writer) error {
 				if compat == current {
 					msg = e.style.Green("✓ already using latest compat version")
 				}
-				fmt.Fprintln(dst, "    compat:  "+msg)
+				fprintln(dst, "    compat:  "+msg)
 			}
 			if latest.Exists() {
-				fmt.Fprintln(dst, "    latest:  "+latest.String())
+				fprintln(dst, "    latest:  "+latest.String())
 			}
 		}
 		if i < len(keys)-1 {
-			fmt.Fprintln(dst)
+			fprintln(dst)
 		}
 	}
 
@@ -203,15 +202,15 @@ func (e *Engine) rewriteWorkflows(ctx context.Context, strategy RewriteStrategy)
 			// write prefix
 			out.WriteString(before + "uses: ")
 			// append pinned action version
-			fmt.Fprintf(out, "%s@%s", step.Action.Name, pin.CommitHash)
+			fprintf(out, "%s@%s", step.Action.Name, pin.CommitHash)
 			// append version hint in comment
 			if pin.Version != "" {
-				fmt.Fprintf(out, " # %s", pin.Version)
+				fprintf(out, " # %s", pin.Version)
 			} else if step.Action.Ref != pin.CommitHash {
-				fmt.Fprintf(out, " # ref:%s", step.Action.Ref)
+				fprintf(out, " # ref:%s", step.Action.Ref)
 			}
 			// append correct line ending based on original line
-			fmt.Fprint(out, matchEOL(line))
+			fprintf(out, matchEOL(line))
 		}
 		if err := scanner.Err(); err != nil {
 			return fmt.Errorf("failed to scan workflow %s: %w", w.FilePath, err)
@@ -552,10 +551,10 @@ func (pl *PhaseLogger) ShowDiagnostics() {
 
 	msgPrefixTmpl := fmt.Sprintf("%%5s %%-%ds → ", pl.stepWidth)
 
-	fmt.Fprintln(pl.out, pl.style.Boldf("diagnostics"))
+	fprintln(pl.out, pl.style.Boldf("diagnostics"))
 	workflowKeys := slices.Sorted(maps.Keys(pl.diagnostics))
 	for _, workflow := range workflowKeys {
-		fmt.Fprintln(pl.out, " ", pl.style.Boldf(workflow))
+		fprintln(pl.out, " ", pl.style.Boldf(workflow))
 		for _, rec := range pl.diagnostics[workflow] {
 			msgPrefix := fmt.Sprintf(msgPrefixTmpl, rec.Level, rec.Step.Action.Name)
 			msg := fmt.Sprintf("    %s%s", msgPrefix, rec.Msg)
@@ -566,10 +565,10 @@ func (pl *PhaseLogger) ShowDiagnostics() {
 				msg = pl.style.Red(msg)
 			}
 
-			fmt.Fprintln(pl.out, msg)
+			fprintln(pl.out, msg)
 		}
 	}
-	fmt.Fprintln(pl.out)
+	fprintln(pl.out)
 }
 
 const (
@@ -583,13 +582,13 @@ const (
 func (pl *PhaseLogger) writeln(msg string) {
 	pl.mu.Lock()
 	defer pl.mu.Unlock()
-	fmt.Fprintln(pl.out, msg)
+	fprintln(pl.out, msg)
 }
 
 func (pl *PhaseLogger) write(msg string) {
 	pl.mu.Lock()
 	defer pl.mu.Unlock()
-	fmt.Fprint(pl.out, msg)
+	fprint(pl.out, msg)
 }
 
 // writeInPlace handles writing status logs, where when "fancy" output is
@@ -604,12 +603,12 @@ func (pl *PhaseLogger) writeInPlace(header string, msg string) {
 	if pl.fancy {
 		// only clear previous two lines after the first in-place write
 		if pl.inPlaceWrites.Add(1) > 1 {
-			fmt.Fprint(pl.out, hideCursor+cursorUpTwo+carriageReturn+clearToEnd)
+			fprint(pl.out, hideCursor+cursorUpTwo+carriageReturn+clearToEnd)
 		}
-		fmt.Fprintln(pl.out, pl.truncateLine("  "+header))
-		fmt.Fprintln(pl.out, pl.truncateLine("  ↳ "+msg))
+		fprintln(pl.out, pl.truncateLine("  "+header))
+		fprintln(pl.out, pl.truncateLine("  ↳ "+msg))
 	} else {
-		fmt.Fprintln(pl.out, header, "→", msg)
+		fprintln(pl.out, header, "→", msg)
 	}
 }
 
