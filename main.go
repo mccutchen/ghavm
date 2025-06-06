@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	app := newApp(os.Stdin, os.Stdout, os.Stderr)
+	app := newApp(os.Stdin, os.Stdout, os.Stderr, os.Getenv)
 	if err := runApp(app, os.Args[1:]); err != nil {
 		os.Exit(1)
 	}
@@ -28,7 +28,7 @@ func runApp(app *cobra.Command, args []string) error {
 	return app.Execute()
 }
 
-func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command {
+func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(string) string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "ghavm",
 		Short: "ghavm manages version pinning and upgrades for GitHub Actions workflows.",
@@ -127,7 +127,7 @@ Available modes:
 			// --github-token is required, but we will also take the value from
 			// the GITHUB_TOKEN env var if found.
 			if f := cmd.Flag("github-token"); !f.Changed {
-				if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+				if token := getenv("GITHUB_TOKEN"); token != "" {
 					if err := f.Value.Set(token); err != nil {
 						return fmt.Errorf("internals: failed to set value of github-token flag: %w", err)
 					}
@@ -138,7 +138,7 @@ Available modes:
 
 			// --verbose flag is optional, but we also support setting via env vars
 			if f := cmd.Flag("verbose"); !f.Changed {
-				if verbose := os.Getenv("VERBOSE"); verbose != "" && verbose != "0" && verbose != "false" {
+				if verbose := getenv("VERBOSE"); verbose != "" && verbose != "0" && verbose != "false" {
 					if err := f.Value.Set("true"); err != nil {
 						return fmt.Errorf("internals: failed to set value of verbose flag: %w", err)
 					}
