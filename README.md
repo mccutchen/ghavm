@@ -8,10 +8,10 @@
 `ghavm` is a tool for managing version pinning and upgrades for GitHub
 Actions workflows, to ease the burden of following security best practices.
 
-In particular, per GitHub's own [Security Hardening for GitHub Actions][gh-sec]
-documentation:
-
 > [!IMPORTANT]
+> Note, per GitHub's own [Security Hardening for GitHub
+> Actions][gh-sec] documentation:
+>
 > _Pinning an action to a full length commit SHA is currently the only way to
 > use an action as an immutable release. Pinning to a particular SHA helps
 > mitigate the risk of a bad actor adding a backdoor to the action's
