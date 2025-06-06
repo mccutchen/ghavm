@@ -106,16 +106,16 @@ func TestScanFileFiltering(t *testing.T) {
 			opts:     scanOpts{},
 			expected: []string{"actions/setup-go", "actions/checkout", "golangci/golangci-lint-action", "codecov/codecov-action"},
 		},
-		"targets only": {
-			opts:     scanOpts{Targets: []string{"actions/checkout", "codecov/codecov-action"}},
+		"selects only": {
+			opts:     scanOpts{Selects: []string{"actions/checkout", "codecov/codecov-action"}},
 			expected: []string{"actions/checkout", "codecov/codecov-action"},
 		},
 		"excludes only": {
 			opts:     scanOpts{Excludes: []string{"actions/setup-go", "golangci/golangci-lint-action"}},
 			expected: []string{"actions/checkout", "codecov/codecov-action"},
 		},
-		"excludes take precedence over targets": {
-			opts:     scanOpts{Targets: []string{"actions/checkout", "actions/setup-go"}, Excludes: []string{"actions/checkout"}},
+		"excludes take precedence over selects": {
+			opts:     scanOpts{Selects: []string{"actions/checkout", "actions/setup-go"}, Excludes: []string{"actions/checkout"}},
 			expected: []string{"actions/setup-go"},
 		},
 		"exclude all": {
@@ -123,7 +123,7 @@ func TestScanFileFiltering(t *testing.T) {
 			expected: []string{},
 		},
 		"target wildcard": {
-			opts:     scanOpts{Targets: []string{"actions/*"}},
+			opts:     scanOpts{Selects: []string{"actions/*"}},
 			expected: []string{"actions/setup-go", "actions/checkout"},
 		},
 		"exclude wildcard": {
@@ -131,7 +131,7 @@ func TestScanFileFiltering(t *testing.T) {
 			expected: []string{"golangci/golangci-lint-action", "codecov/codecov-action"},
 		},
 		"mixed exact and wildcard targets": {
-			opts:     scanOpts{Targets: []string{"actions/*", "codecov/codecov-action"}},
+			opts:     scanOpts{Selects: []string{"actions/*", "codecov/codecov-action"}},
 			expected: []string{"actions/setup-go", "actions/checkout", "codecov/codecov-action"},
 		},
 		"mixed exact and wildcard excludes": {
@@ -139,11 +139,11 @@ func TestScanFileFiltering(t *testing.T) {
 			expected: []string{"golangci/golangci-lint-action"},
 		},
 		"wildcard target with exact exclude": {
-			opts:     scanOpts{Targets: []string{"actions/*"}, Excludes: []string{"actions/checkout"}},
+			opts:     scanOpts{Selects: []string{"actions/*"}, Excludes: []string{"actions/checkout"}},
 			expected: []string{"actions/setup-go"},
 		},
 		"wildcard exclude takes precedence over wildcard target": {
-			opts:     scanOpts{Targets: []string{"actions/*"}, Excludes: []string{"actions/*"}},
+			opts:     scanOpts{Selects: []string{"actions/*"}, Excludes: []string{"actions/*"}},
 			expected: []string{},
 		},
 	}

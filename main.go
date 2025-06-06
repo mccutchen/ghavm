@@ -11,19 +11,23 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/spf13/cobra"
-
 	"github.com/mccutchen/ghavm/internal/slogctx"
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	app := newApp(os.Stdin, os.Stdout, os.Stderr)
-	if err := app.Execute(); err != nil {
+	app := newApp(os.Stdin, os.Stdout, os.Stderr, os.Getenv)
+	if err := runApp(app, os.Args[1:]); err != nil {
 		os.Exit(1)
 	}
 }
 
-func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command {
+func runApp(app *cobra.Command, args []string) error {
+	app.SetArgs(args)
+	return app.Execute()
+}
+
+func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(string) string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "ghavm",
 		Short: "ghavm manages version pinning and upgrades for GitHub Actions workflows.",
@@ -43,7 +47,7 @@ func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer) *cobra.Command 
 
   # list version and available upgrades for all 'actions/setup-go'
   # actions in the current repo
-  ghavm list --target actions/setup-go`,
+  ghavm list --select actions/setup-go`,
 		RunE: listCmd,
 	}
 
@@ -110,7 +114,7 @@ Available modes:
 	// don't want to define these on the root command)
 	for _, cmd := range []*cobra.Command{listCmd, pinCmd, upgradeCmd} {
 		cmd.Flags().StringP("github-token", "g", "", "GitHub access token (default: GITHUB_TOKEN env value)")
-		cmd.Flags().StringSliceP("targets", "t", nil, "Limit upgrades to specific actions, with optional wildcards (e.g. --target \"actions/*\" --target codecov/codecov-action)")
+		cmd.Flags().StringSliceP("select", "s", nil, "Select specific actions, with optional wildcards (e.g. --select \"actions/*\" --select codecov/codecov-action)")
 		cmd.Flags().StringSliceP("exclude", "e", nil, "Exclude specific actions, with optional wildcards (e.g. --exclude \"actions/*\" --exclude codecov/codecov-action)")
 		cmd.Flags().IntP("workers", "w", runtime.NumCPU(), "Limit parallelism when accessing the GitHub API")
 		cmd.Flags().Bool("strict", false, "Strict mode, abort on any error")
@@ -122,7 +126,7 @@ Available modes:
 			// --github-token is required, but we will also take the value from
 			// the GITHUB_TOKEN env var if found.
 			if f := cmd.Flag("github-token"); !f.Changed {
-				if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+				if token := getenv("GITHUB_TOKEN"); token != "" {
 					if err := f.Value.Set(token); err != nil {
 						return fmt.Errorf("internals: failed to set value of github-token flag: %w", err)
 					}
@@ -133,7 +137,7 @@ Available modes:
 
 			// --verbose flag is optional, but we also support setting via env vars
 			if f := cmd.Flag("verbose"); !f.Changed {
-				if verbose := os.Getenv("VERBOSE"); verbose != "" && verbose != "0" && verbose != "false" {
+				if verbose := getenv("VERBOSE"); verbose != "" && verbose != "0" && verbose != "false" {
 					if err := f.Value.Set("true"); err != nil {
 						return fmt.Errorf("internals: failed to set value of verbose flag: %w", err)
 					}
@@ -146,11 +150,11 @@ Available modes:
 				return fmt.Errorf("--color must be one of \"auto\", \"always\", or \"never\"")
 			}
 
-			// validate --target patterns
-			if targets, _ := cmd.Flags().GetStringSlice("target"); len(targets) > 0 {
-				for _, target := range targets {
-					if err := validatePattern(target); err != nil {
-						return fmt.Errorf("invalid --target pattern: %w", err)
+			// validate --select patterns
+			if selects, _ := cmd.Flags().GetStringSlice("select"); len(selects) > 0 {
+				for _, selectPattern := range selects {
+					if err := validatePattern(selectPattern); err != nil {
+						return fmt.Errorf("invalid --select pattern: %w", err)
 					}
 				}
 			}
@@ -187,7 +191,7 @@ func listCmd(cmd *cobra.Command, args []string) error {
 	var (
 		flags       = cmd.Flags()
 		token, _    = flags.GetString("github-token")
-		targets, _  = flags.GetStringSlice("target")
+		selects, _  = flags.GetStringSlice("select")
 		excludes, _ = flags.GetStringSlice("exclude")
 		workers, _  = flags.GetInt("workers")
 		strict, _   = flags.GetBool("strict")
@@ -216,7 +220,7 @@ func listCmd(cmd *cobra.Command, args []string) error {
 
 	// scan workflow files for action steps to upgrade
 	root, err := ScanWorkflows(files, scanOpts{
-		Targets:  targets,
+		Selects:  selects,
 		Excludes: excludes,
 	})
 	if err != nil {
@@ -238,7 +242,7 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 	var (
 		flags       = cmd.Flags()
 		token, _    = flags.GetString("github-token")
-		targets, _  = flags.GetStringSlice("target")
+		selects, _  = flags.GetStringSlice("select")
 		excludes, _ = flags.GetStringSlice("exclude")
 		workers, _  = flags.GetInt("workers")
 		strict, _   = flags.GetBool("strict")
@@ -282,7 +286,7 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 
 	// scan workflow files for action steps to upgrade
 	root, err := ScanWorkflows(files, scanOpts{
-		Targets:  targets,
+		Selects:  selects,
 		Excludes: excludes,
 	})
 	if err != nil {

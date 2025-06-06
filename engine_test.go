@@ -16,10 +16,10 @@ import (
 //go:embed testdata/golden/*.outdir
 var goldenDirs embed.FS
 
-func newTestApp() (app *cobra.Command, stdout *bytes.Buffer, stderr *bytes.Buffer) {
+func newTestApp(getenv func(string) string) (app *cobra.Command, stdout *bytes.Buffer, stderr *bytes.Buffer) {
 	stdout = &bytes.Buffer{}
 	stderr = &bytes.Buffer{}
-	app = newApp(nil, stdout, stderr)
+	app = newApp(nil, stdout, stderr, getenv)
 	return
 }
 
@@ -53,7 +53,7 @@ func TestIntegrationTests(t *testing.T) {
 				args = append(args, arg)
 			}
 
-			app, stdout, _ := newTestApp()
+			app, stdout, _ := newTestApp(os.Getenv) // integration tests use real env
 			app.SetArgs(args)
 			assert.NilError(t, app.Execute())
 
@@ -127,7 +127,7 @@ func TestIntegrationTests(t *testing.T) {
 			args = append(args, testDir)
 			t.Logf("cli args: %v", args)
 
-			app, _, _ := newTestApp()
+			app, _, _ := newTestApp(os.Getenv) // integration tests use real env
 			app.SetArgs(args)
 			assert.NilError(t, app.Execute())
 
