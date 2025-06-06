@@ -5,23 +5,21 @@
 [![Code coverage](https://codecov.io/gh/mccutchen/ghavm/branch/main/graph/badge.svg)](https://codecov.io/gh/mccutchen/ghavm)
 [![Go report card](http://goreportcard.com/badge/github.com/mccutchen/ghavm)](https://goreportcard.com/report/github.com/mccutchen/ghavm)
 
-`ghavm` is a tool for managing version pinning and upgrades for GitHub
-Actions workflows, to ease the burden of following security best practices.
+`ghavm` is a tool that manages strict SHA hash version pinning and upgrades for
+GitHub Actions workflows, to ease the burden of following a key security best
+practice [as suggested by GitHub][gh-sec-3p]:
 
-> [!IMPORTANT]
-> Note, per GitHub's own [Security Hardening for GitHub
-> Actions][gh-sec] documentation:
->
 > _Pinning an action to a full length commit SHA is currently the only way to
 > use an action as an immutable release. Pinning to a particular SHA helps
 > mitigate the risk of a bad actor adding a backdoor to the action's
 > repository_
 
-See [Security best practics](#security-best-practices) below for more
-information on the specific problem `ghavm` helps solve.
+See [Motivations](#motivations) below for more information on the specific
+problem `ghavm` helps solve, and further reading on properly securing GitHub
+Actions workflows.
 
 
-## TLDR
+## Getting started
 
 First, you might use `ghavm pin` to **pin your actions to immutable commit
 hashes**, ensuring that they'll run the exact same code every time:
@@ -111,7 +109,6 @@ $ go run github.com/mccutchen/ghavm@latest upgrade --mode=latest
 > GitHub unpinned.
 
 
-
 ## Installation
 
 Until we publish prebuilt binaries, you'll need a Go toolchain to install
@@ -151,7 +148,7 @@ Use "ghavm [command] --help" for more information about a command.
 ```
 
 
-## Security best practices
+## Motivations
 
 ### Background
 
@@ -204,7 +201,7 @@ So, even when pinning your action versions with `ghavm` or any other tool, it
 is important to continue following best practices, _especially_ when using 3rd
 party actions not owned by GitHub itself.
 
-### Further reading
+### Further reading on security best practices
 
 - GitHub's own [Security hardening for GitHub Actions][gh-sec] guide
 - StepSecurity's [7 GitHub Actions Security Best Practices][step-sec] guide
