@@ -105,6 +105,7 @@ Available modes:
 	for _, cmd := range []*cobra.Command{listCmd, pinCmd, upgradeCmd} {
 		cmd.Flags().StringP("github-token", "g", "", "GitHub access token (default: GITHUB_TOKEN env value)")
 		cmd.Flags().StringSliceP("targets", "t", nil, "Limit upgrades to specific actions (e.g. --target actions/checkout)")
+		cmd.Flags().StringSliceP("exclude", "e", nil, "Exclude specific actions (e.g. --exclude actions/checkout)")
 		cmd.Flags().IntP("workers", "w", runtime.NumCPU(), "Limit parallelism when accessing the GitHub API")
 		cmd.Flags().Bool("strict", false, "Strict mode, abort on any error")
 		cmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging")
@@ -163,6 +164,7 @@ func listCmd(cmd *cobra.Command, args []string) error {
 		flags       = cmd.Flags()
 		token, _    = flags.GetString("github-token")
 		targets, _  = flags.GetStringSlice("target")
+		excludes, _ = flags.GetStringSlice("exclude")
 		workers, _  = flags.GetInt("workers")
 		strict, _   = flags.GetBool("strict")
 		verbose, _  = flags.GetBool("verbose")
@@ -189,7 +191,10 @@ func listCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// scan workflow files for action steps to upgrade
-	root, err := ScanWorkflows(files, targets)
+	root, err := ScanWorkflows(files, scanOpts{
+		Targets:  targets,
+		Excludes: excludes,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to scan workflow files: %w", err)
 	}
@@ -210,6 +215,7 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 		flags       = cmd.Flags()
 		token, _    = flags.GetString("github-token")
 		targets, _  = flags.GetStringSlice("target")
+		excludes, _ = flags.GetStringSlice("exclude")
 		workers, _  = flags.GetInt("workers")
 		strict, _   = flags.GetBool("strict")
 		verbose, _  = flags.GetBool("verbose")
@@ -251,7 +257,10 @@ func pinOrUpgradeCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// scan workflow files for action steps to upgrade
-	root, err := ScanWorkflows(files, targets)
+	root, err := ScanWorkflows(files, scanOpts{
+		Targets:  targets,
+		Excludes: excludes,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to scan workflow files: %w", err)
 	}
