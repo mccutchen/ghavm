@@ -32,8 +32,8 @@ func TestIntegrationTests(t *testing.T) {
 	t.Parallel()
 	t.Logf("Note: to update golden tests, run:\n\n    make test-reset-golden-fixtures\n\n")
 
-	// for testing `ghavm list` we just capture stdout and compare it to
-	// a snapshot stored on disk
+	// for testing `ghavm list` we just capture stdout and compare it to a
+	// snapshot stored on disk, once with and once without ANSI escape codes.
 	for _, forceColor := range []bool{false, true} {
 		arg := "--color=never"
 		pathSuffix := "-plain"
