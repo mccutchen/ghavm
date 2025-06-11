@@ -6,6 +6,7 @@ DOCS_PORT     ?= :8080
 
 # 3rd party tools
 CMD_GOFUMPT     := go run mvdan.cc/gofumpt@v0.8.0
+CMD_GORELEASER  := go run github.com/goreleaser/goreleaser@latest
 CMD_PKGSITE     := go run golang.org/x/pkgsite/cmd/pkgsite@latest
 CMD_REVIVE      := go run github.com/mgechev/revive@v1.9.0
 CMD_STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2025.1.1
@@ -74,3 +75,15 @@ fmt:
 
 docs:
 	$(CMD_PKGSITE) -http $(DOCS_PORT)
+
+
+# ===========================================================================
+# Goreleaser
+# ===========================================================================
+release-dry-run:
+	$(CMD_GORELEASER) release --snapshot --clean
+.PHONY: release-dry-run
+
+release:
+	$(CMD_GORELEASER) release --clean
+.PHONY: release
