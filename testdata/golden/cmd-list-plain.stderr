@@ -57,3 +57,9 @@ workflow=03-edge-cases.yml       action=mccutchen/ghavm-test-repo             �
 workflow=03-edge-cases.yml       action=mccutchen/ghavm-test-repo             → finding upgrade candidates for version v3.2.3
 done!
 
+diagnostics
+  testdata/workflows/03-edge-cases.yml
+    ERROR mccutchen/ghavm-test-nonexistent-repo → failed to resolve commit hash for ref v1: failed to resolve reference v1
+     WARN mccutchen/ghavm-test-repo             → no upgrade candidates found for version 
+    ERROR mccutchen/ghavm-test-repo             → failed to resolve commit hash for ref v99.99.99: failed to resolve reference v99.99.99
+
