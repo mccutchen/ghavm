@@ -1,115 +1,121 @@
 [1mresolving action versions for 19 step(s) across 3 workflow(s) with 1 worker(s) ...[22m
   workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v4.2.3
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref e31a34957100bbd9e4ef4119114615b944a3a5b1
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash e31a34957100bbd9e4ef4119114615b944a3a5b1
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v4.1.1
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref e31a34957100bbd9e4ef4119114615b944a3a5b1
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash e31a34957100bbd9e4ef4119114615b944a3a5b1
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v4.1.1
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref 4ac411f47580d9304c9410d997568adbe7651f35
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 4ac411f47580d9304c9410d997568adbe7651f35
-[?25l[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m01-already-pinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v1.1.2
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref v4.2.3
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v4.2.3
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref v4
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v4.2.3
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref v2
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash fd663af41ca3473570136ee6ff8fb80adfae3565
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v2.2.3
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref v3.2.1
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 3e81467f76a58c3d7a2d6ba3801efd2f81d744e7
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v3.2.1
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref v3.2.1
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 3e81467f76a58c3d7a2d6ba3801efd2f81d744e7
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v3.2.1
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref v4.1.2
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash a1c009077548b2c32b31ac1f95899ada0a4de129
-[?25l[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m02-semver-unpinned.yaml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v4.1.2
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref c464581d
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash c464581d8e7a16dab2029f7a34c81fe75f03a49d
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v2.2.2
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 75e35fafbce9720ebaf2c4e8bf1c4950260c35c3
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v4.2.3
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref c09a940bc73914e8d734930e72cf8816613b1b4f
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash c09a940bc73914e8d734930e72cf8816613b1b4f
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v0.0.1
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-nonexistent-repo[22m
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-nonexistent-repo[22m
   ↳ resolving commit hash for ref v1
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-nonexistent-repo[22m
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-nonexistent-repo[22m
   ↳ [31mfailed to resolve commit hash for ref v1: failed to resolve reference v1[0m
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref develop
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 46852083c58587e34fd537e1391e5408779f1762
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version 
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ [33mno upgrade candidates found for version [0m
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref feature/new_feature-01
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash fd663af41ca3473570136ee6ff8fb80adfae3565
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v2.2.3
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref v99.99.99
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ [31mfailed to resolve commit hash for ref v99.99.99: failed to resolve reference v99.99.99[0m
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref v3.2.3-annotated
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 3c867123aa53f955575f72c821d4323b632fd96f
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v3.2.3
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving commit hash for ref 3c867123aa53f955575f72c821d4323b632fd96f
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ resolving semver tags for commit hash 3c867123aa53f955575f72c821d4323b632fd96f
-[?25l[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
+[2A[0J  workflow=[1m03-edge-cases.yml[22m action=[1mmccutchen/ghavm-test-repo[22m   
   ↳ finding upgrade candidates for version v3.2.3
-[2A[0J[?25h[1mdone![22m
+[2A[0J[1mdone![22m
+
+[1mdiagnostics[22m
+  [1mtestdata/workflows/03-edge-cases.yml[22m
+[31m    ERROR mccutchen/ghavm-test-nonexistent-repo → failed to resolve commit hash for ref v1: failed to resolve reference v1[0m
+[33m     WARN mccutchen/ghavm-test-repo             → no upgrade candidates found for version [0m
+[31m    ERROR mccutchen/ghavm-test-repo             → failed to resolve commit hash for ref v99.99.99: failed to resolve reference v99.99.99[0m
 

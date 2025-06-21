@@ -154,7 +154,7 @@ func (e *Engine) Pin(ctx context.Context, mode PinMode) error {
 	if err := e.rewriteWorkflows(ctx, rewriteStrategyForMode(mode)); err != nil {
 		return fmt.Errorf("upgrade failed: %w", err)
 	}
-	e.phaseLog.FinishSection("done!")
+	e.phaseLog.FinishPhase("done!")
 	return nil
 }
 
@@ -319,7 +319,7 @@ func (e *Engine) resolveSteps(ctx context.Context, mode PinMode) error {
 		return fmt.Errorf("failed to resolve actions: %w", err)
 	}
 
-	e.phaseLog.FinishSection("done!")
+	e.phaseLog.FinishPhase("done!")
 	e.phaseLog.ShowDiagnostics()
 	return nil
 }
@@ -466,27 +466,28 @@ type PhaseLogger struct {
 // StartPhase logs a header line marking a new phase.
 func (pl *PhaseLogger) StartPhase(msg string, args ...any) {
 	if pl.phaseStarted.Swap(true) {
-		panic("ProgressLogger: current phase must be finished before starting new phase with msg: " + msg)
+		panic("PhaseLogger: current phase must be finished before starting new phase with msg: " + msg)
 	}
+
+	// reset diagnostics for new phase
+	pl.mu.Lock()
+	pl.diagnostics = nil
+	pl.mu.Unlock()
+
 	pl.writeln(pl.style.Boldf(msg, args...))
 }
 
-// FinishSection logs a footer line marking the end of a phase.
-func (pl *PhaseLogger) FinishSection(msg string, args ...any) {
+// FinishPhase logs a footer line marking the end of a phase.
+func (pl *PhaseLogger) FinishPhase(msg string, args ...any) {
 	if !pl.phaseStarted.Swap(false) {
-		panic("ProgressLogger: no phase to finish with msg: " + msg)
+		panic("PhaseLogger: no phase to finish with msg: " + msg)
 	}
 	// if we're finishing a section of overwritten lines, we need to a) reset
 	// the write counter to 0 and b) only clear previously overwritten lines
 	// if we actually did any previous overwrites
 	if pl.inPlaceWrites.Swap(0) > 1 {
-		pl.write(cursorUpTwo + carriageReturn + clearToEnd + showCursor)
+		pl.write(cursorUpTwo + carriageReturn + clearToEnd)
 	}
-
-	// reset diagnostics before next phase
-	pl.mu.Lock()
-	pl.diagnostics = nil
-	pl.mu.Unlock()
 
 	pl.writeln(pl.style.Boldf(msg, args...))
 	pl.writeln("")
@@ -512,7 +513,7 @@ func (pl *PhaseLogger) Error(workflow Workflow, step *Step, err error) {
 
 func (pl *PhaseLogger) logPhaseStatus(level Level, workflow Workflow, step *Step, msg string, args ...any) {
 	if !pl.phaseStarted.Load() {
-		panic("ProgressLogger: phase must be started before updating status: " + msg)
+		panic("PhaseLogger: phase must be started before updating status: " + msg)
 	}
 	headerTmpl := fmt.Sprintf("workflow=%%-%ds action=%%-%ds", pl.workflowWidth, pl.stepWidth)
 	header := fmt.Sprintf(headerTmpl, pl.style.Boldf(filepath.Base(workflow.FilePath)), pl.style.Boldf(step.Action.Name))
@@ -575,8 +576,6 @@ const (
 	cursorUpTwo    = "\033[2A"
 	clearToEnd     = "\033[0J" // clear from cursor to end of screen
 	carriageReturn = "\r"
-	hideCursor     = "\033[?25l"
-	showCursor     = "\033[?25h"
 )
 
 func (pl *PhaseLogger) writeln(msg string) {
@@ -603,7 +602,7 @@ func (pl *PhaseLogger) writeInPlace(header string, msg string) {
 	if pl.fancy {
 		// only clear previous two lines after the first in-place write
 		if pl.inPlaceWrites.Add(1) > 1 {
-			fprint(pl.out, hideCursor+cursorUpTwo+carriageReturn+clearToEnd)
+			fprint(pl.out, cursorUpTwo+carriageReturn+clearToEnd)
 		}
 		fprintln(pl.out, pl.truncateLine("  "+header))
 		fprintln(pl.out, pl.truncateLine("  ↳ "+msg))
