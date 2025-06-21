@@ -54,39 +54,7 @@ testcover: testci
 .PHONY: testcover
 
 test-reset-golden-fixtures: build
-	@echo "=================================================================="
-	@echo "cleaning old data, recreating directory structure"
-	@echo "=================================================================="
-	rm -rf testdata/golden
-	mkdir -p testdata/golden testdata/golden/cmd-pin.outdir
-	mkdir -p testdata/golden testdata/golden/cmd-upgrade-{default,compat,latest}.outdir
-	for d in testdata/golden/*.outdir; do cp -r testdata/workflows/*.y*ml $$d; done
-	@echo ""
-	@echo "=================================================================="
-	@echo 'regenerating golden files for `ghavm list`'
-	@echo "=================================================================="
-	$(OUT_DIR)/ghavm list --workers=1 --color=never  testdata/workflows/ >testdata/golden/cmd-list-plain.stdout 2>testdata/golden/cmd-list-plain.stderr 
-	$(OUT_DIR)/ghavm list --workers=1 --color=always testdata/workflows/ >testdata/golden/cmd-list-color.stdout 2>testdata/golden/cmd-list-color.stderr
-	@echo ""
-	@echo "=================================================================="
-	@echo 'regenerating golden file for `ghavm pin`'
-	@echo "=================================================================="
-	$(OUT_DIR)/ghavm pin     testdata/golden/cmd-pin.outdir/
-	@echo ""
-	@echo "=================================================================="
-	@echo 'regenerating golden file for `ghavm upgrade`'
-	@echo "=================================================================="
-	$(OUT_DIR)/ghavm upgrade testdata/golden/cmd-upgrade-default.outdir/
-	@echo ""
-	@echo "=================================================================="
-	@echo 'regenerating golden file for `ghavm upgrade --mode=compat`'
-	@echo "=================================================================="
-	$(OUT_DIR)/ghavm upgrade testdata/golden/cmd-upgrade-compat.outdir/ --mode=compat
-	@echo ""
-	@echo "=================================================================="
-	@echo 'regenerating golden file for `ghavm upgrade --mode=latest`'
-	@echo "=================================================================="
-	$(OUT_DIR)/ghavm upgrade testdata/golden/cmd-upgrade-latest.outdir/ --mode=latest
+	PATH="$(shell readlink -f $(OUT_DIR)):$$PATH" ./testdata/bin/reset-golden-fixtures
 
 
 # ===========================================================================

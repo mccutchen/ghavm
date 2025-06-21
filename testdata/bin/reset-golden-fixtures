@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#
+# reset-golden-fixtures rebuilds "golden" test fixtures by running whatever
+# version of `ghavm` is found in $PATH against some known inputs.
+#
+# Generally, it should be invoked via
+#
+#     make test-reset-golden-fixtures
+#
+# which will ensure that the fixtures are rebuilt using the current local
+# version of ghavm.
+#
+# See TestIntegrationTests in engine_test.go for the tests that use these
+# fixtures.
+
+set -euo pipefail
+
+function phase() {
+    echo ""
+    echo "=================================================================="
+    echo $*
+    echo "=================================================================="
+}
+
+function main() {
+    phase "cleaning old data, recreating directory structure"
+    rm -rf testdata/golden
+    mkdir -p testdata/golden testdata/golden/cmd-pin.outdir
+    mkdir -p testdata/golden testdata/golden/cmd-upgrade-{default,compat,latest}.outdir
+    for d in testdata/golden/*.outdir; do
+        cp -r testdata/workflows/*.y*ml $d
+    done
+
+    # Since `ghavm list` only writes to stdout/stderr, we run it twice to test
+    # output with and without ANSI escape codes. And we use --workers=1 to
+    # ensure deterministic output order.
+    phase 'regenerating golden files for `ghavm list`'
+    ghavm list --workers=1 --color=never testdata/workflows/ \
+        >testdata/golden/cmd-list-plain.stdout \
+        2>testdata/golden/cmd-list-plain.stderr
+    ghavm list --workers=1 --color=always testdata/workflows/ \
+        >testdata/golden/cmd-list-color.stdout \
+        2>testdata/golden/cmd-list-color.stderr
+
+    phase 'regenerating golden file for `ghavm pin`'
+    ghavm pin testdata/golden/cmd-pin.outdir/
+
+    phase 'regenerating golden file for `ghavm upgrade`'
+    ghavm upgrade testdata/golden/cmd-upgrade-default.outdir/
+
+    phase 'regenerating golden file for `ghavm upgrade --mode=compat`'
+    ghavm upgrade testdata/golden/cmd-upgrade-compat.outdir/ --mode=compat
+
+    phase 'regenerating golden file for `ghavm upgrade --mode=latest`'
+    ghavm upgrade testdata/golden/cmd-upgrade-latest.outdir/ --mode=latest
+}
+
+# use root of repo as working dir
+cd "$(git rev-parse --show-toplevel)"
+main
