@@ -622,16 +622,21 @@ func (pl *PhaseLogger) precomputeColumnWidths(root Root) {
 
 func (pl *PhaseLogger) truncateLine(line string) string {
 	const minWidth = 40
-	if width := pl.getTerminalWidth(); width > minWidth {
+	if width := getTerminalWidth(pl.out); width > minWidth {
 		return truncateToDisplayWidth(line, width)
 	}
 	return line
 }
 
-func (pl *PhaseLogger) getTerminalWidth() int {
-	if fd := int(os.Stdout.Fd()); term.IsTerminal(fd) {
-		if width, _, err := term.GetSize(fd); err == nil {
-			return width
+// getTerminalWidth attempts to get the width of the terminal to which the
+// given writer is connected (e.g. if out is os.Stderr). Returns 0 if width
+// cannot be determined.
+func getTerminalWidth(out io.Writer) int {
+	if fder, ok := out.(interface{ Fd() uintptr }); ok {
+		if fd := int(fder.Fd()); term.IsTerminal(int(fder.Fd())) {
+			if width, _, err := term.GetSize(fd); err == nil {
+				return width
+			}
 		}
 	}
 	return 0
@@ -639,8 +644,9 @@ func (pl *PhaseLogger) getTerminalWidth() int {
 
 var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
-// getDisplayWidth returns the visual width of a string, ignoring ANSI escape sequences
-func getDisplayWidth(s string) int {
+// computeDisplayWidth returns the visual width of a string, ignoring ANSI
+// escape sequences
+func computeDisplayWidth(s string) int {
 	cleaned := ansiRegex.ReplaceAllString(s, "")
 	return utf8.RuneCountInString(cleaned)
 }
@@ -648,21 +654,23 @@ func getDisplayWidth(s string) int {
 // truncateToDisplayWidth truncates a string to fit within the given width,
 // preserving ANSI escape sequences and adding ellipsis if needed
 func truncateToDisplayWidth(s string, width int) string {
-	if getDisplayWidth(s) <= width {
+	if computeDisplayWidth(s) <= width {
 		return s
 	}
-
 	if width <= 3 {
-		return "..."
+		return strings.Repeat(".", width)
 	}
 
-	targetWidth := width - 3 // reserve space for "..."
-	result := ""
-	currentWidth := 0
+	var (
+		// Split into ANSI sequences and regular text
+		parts              = ansiRegex.Split(s, -1)
+		sequences          = ansiRegex.FindAllString(s, -1)
+		ansiSequencesFound = len(sequences) > 0
 
-	// Split into ANSI sequences and regular text
-	parts := ansiRegex.Split(s, -1)
-	sequences := ansiRegex.FindAllString(s, -1)
+		targetWidth  = width - 3 // reserve space for "...""
+		result       = ""
+		currentWidth = 0
+	)
 
 	for i, part := range parts {
 		partWidth := utf8.RuneCountInString(part)
@@ -677,8 +685,14 @@ func truncateToDisplayWidth(s string, width int) string {
 				runes := []rune(part)
 				result += string(runes[:remaining])
 			}
+			// Always reset if a) we found any ANSI sequences and b) truncated
+			// the input, which might have left "dangling" sequences (might be
+			// redundant, but seems safe enough and simplifies logic)
+			if ansiSequencesFound {
+				result += "\033[0m"
+			}
 			result += "..."
-			break
+			return result
 		}
 
 		// Add the ANSI sequence that follows this part (if any)

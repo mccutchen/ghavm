@@ -167,3 +167,80 @@ func diffStrings(t testing.TB, a, b string) string {
 	}
 	return stdout.String()
 }
+
+func TestTruncateToDisplayWidth(t *testing.T) {
+	tests := map[string]struct {
+		input    string
+		width    int
+		expected string
+	}{
+		"no truncation needed": {
+			input:    "hello world",
+			width:    20,
+			expected: "hello world",
+		},
+		"exactly at width": {
+			input:    "hello",
+			width:    5,
+			expected: "hello",
+		},
+		"basic truncation with ellipsis": {
+			input:    "hello world",
+			width:    8,
+			expected: "hello...",
+		},
+		"width smaller than ellipsis": {
+			input:    "hello",
+			width:    2,
+			expected: "..",
+		},
+		"minimum width for ellipsis": {
+			input:    "hello",
+			width:    4,
+			expected: "h...",
+		},
+		"zero width": {
+			input:    "hello",
+			width:    0,
+			expected: "",
+		},
+		"empty string": {
+			input:    "",
+			width:    10,
+			expected: "",
+		},
+		"unicode truncation": {
+			input:    "héllo wörld",
+			width:    8,
+			expected: "héllo...",
+		},
+		"ANSI preserved when no truncation": {
+			input:    "\033[31mred text\033[0m normal",
+			width:    15,
+			expected: "\033[31mred text\033[0m normal",
+		},
+		"ANSI with truncation adds reset": {
+			input:    "\033[31mred text\033[0m normal",
+			width:    10,
+			expected: "\033[31mred tex\033[0m...",
+		},
+		"ANSI only sequences preserved": {
+			input:    "\033[31m\033[0m",
+			width:    5,
+			expected: "\033[31m\033[0m",
+		},
+		"multiple ANSI sequences truncated": {
+			input:    "\033[1m\033[31mbold red text\033[0m",
+			width:    8,
+			expected: "\033[1m\033[31mbold \033[0m...",
+		},
+	}
+
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			result := truncateToDisplayWidth(tc.input, tc.width)
+			assert.Equal(t, result, tc.expected, "incorrect result")
+		})
+	}
+}
