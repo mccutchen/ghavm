@@ -11,8 +11,9 @@ CMD_PKGSITE     := go run golang.org/x/pkgsite/cmd/pkgsite@latest
 CMD_REVIVE      := go run github.com/mgechev/revive@v1.9.0
 CMD_STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2025.1.1
 
-# Where built binaries will be placed
-OUT_DIR         ?= out
+# Where built binaries will be placed (make and release, respectively)
+OUT_DIR  ?= out
+DIST_DIR ?= dist
 
 
 # =============================================================================
@@ -24,7 +25,7 @@ build:
 .PHONY: build
 
 clean:
-	rm -rf $(OUT_DIR) $(COVERAGE_PATH)
+	rm -rf $(OUT_DIR) $(DIST_DIR) $(COVERAGE_PATH)
 .PHONY: clean
 
 
