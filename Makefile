@@ -87,3 +87,67 @@ release-dry-run:
 release:
 	$(CMD_GORELEASER) release --clean
 .PHONY: release
+
+# ===========================================================================
+# Manual/break-glass release targets
+# ===========================================================================
+
+# Check if required environment variables are set for manual releases
+check-manual-release-env:
+	@echo "Checking environment variables for manual release..."
+	@test -n "$(GITHUB_TOKEN)" || (echo "ERROR: GITHUB_TOKEN environment variable is required"; exit 1)
+	@echo "✓ GITHUB_TOKEN is set"
+	@docker info >/dev/null 2>&1 || (echo "ERROR: Docker is not running or accessible"; exit 1)
+	@echo "✓ Docker is accessible"
+.PHONY: check-manual-release-env
+
+# Authenticate with Docker registries (run this first for manual releases)
+docker-login:
+	@echo "Logging in to Docker registries..."
+	@echo "Please log in to Docker Hub when prompted:"
+	@docker login
+	@echo "Logging in to GitHub Container Registry..."
+	@echo "$(GITHUB_TOKEN)" | docker login ghcr.io -u $(shell gh api user --jq .login 2>/dev/null || echo "$(USER)") --password-stdin
+	@echo "✓ Successfully logged in to both registries"
+.PHONY: docker-login
+
+# Full manual release (use this if GitHub Actions is down)
+# Usage: GITHUB_TOKEN=<token> make manual-release
+manual-release: check-manual-release-env
+	@echo "Starting manual release process..."
+	@echo "⚠️  This will create and push a real release!"
+	@echo "⚠️  Make sure you've already created the git tag and GitHub release!"
+	@read -p "Are you sure you want to continue? [y/N] " confirm && [ "$$confirm" = "y" ]
+	@echo "Running goreleaser..."
+	$(CMD_GORELEASER) release --clean
+	@echo "✓ Manual release completed successfully"
+.PHONY: manual-release
+
+# Snapshot release for testing (doesn't push to registries or create GitHub release)
+manual-release-snapshot: check-manual-release-env
+	@echo "Creating snapshot release for testing..."
+	$(CMD_GORELEASER) release --snapshot --clean
+	@echo "✓ Snapshot release completed - check the dist/ directory"
+.PHONY: manual-release-snapshot
+
+# Help target for manual release process
+manual-release-help:
+	@echo "Manual Release Process (Break-glass scenarios):"
+	@echo ""
+	@echo "1. Create git tag and GitHub release:"
+	@echo "   git tag v1.2.3"
+	@echo "   git push origin v1.2.3"
+	@echo "   # Then create GitHub release via web UI or: gh release create v1.2.3"
+	@echo ""
+	@echo "2. Set environment variables:"
+	@echo "   export GITHUB_TOKEN=<your-github-token>"
+	@echo ""
+	@echo "3. Authenticate with Docker registries:"
+	@echo "   make docker-login"
+	@echo ""
+	@echo "4. Run the manual release:"
+	@echo "   make manual-release"
+	@echo ""
+	@echo "Alternative: Test with snapshot (no push):"
+	@echo "   make manual-release-snapshot"
+.PHONY: manual-release-help
