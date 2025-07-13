@@ -12,7 +12,7 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
-# TODO: Re-add attestations once we verify the syntax
+# Attestations will be generated via GitHub Actions SLSA workflows
 
 archives:
   - format: tar.gz
