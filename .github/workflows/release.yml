@@ -52,6 +52,30 @@ jobs:
           checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
           echo "hashes=$(cat $checksum_file | base64 -w0)" >> "$GITHUB_OUTPUT"
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.6.0
+
+      - name: Sign Docker images
+        env:
+          ARTIFACTS: "${{ steps.goreleaser.outputs.artifacts }}"
+        run: |
+          set -euo pipefail
+          echo "Signing all Docker images and manifests..."
+
+          # Sign individual architecture images
+          echo "$ARTIFACTS" | jq -r '.[] | select(.type=="Docker Image") | .name' | while read -r image; do
+            echo "Signing image: $image"
+            cosign sign --yes "$image"
+          done
+
+          # Sign multi-arch manifests
+          echo "$ARTIFACTS" | jq -r '.[] | select(.type=="Docker Manifest") | .name' | while read -r manifest; do
+            echo "Signing manifest: $manifest"
+            cosign sign --yes "$manifest"
+          done
+
+          echo "✅ All Docker images and manifests signed successfully"
+
   binary-provenance:
     needs: [goreleaser]
     permissions:
