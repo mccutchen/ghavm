@@ -17,6 +17,11 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
+# Generate SLSA v1.0 build attestations for all artifacts
+attestations:
+  - type: slsa
+    artifacts: all
+
 archives:
   - format: tar.gz
     name_template: >-
