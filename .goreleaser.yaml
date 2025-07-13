@@ -44,10 +44,8 @@ changelog:
 
 dockers:
   - image_templates:
-      - "mccutchen/ghavm:{{ .Version }}"
-      - "mccutchen/ghavm:latest"
-      - "ghcr.io/mccutchen/ghavm:{{ .Version }}"
-      - "ghcr.io/mccutchen/ghavm:latest"
+      - "mccutchen/ghavm:{{ .Version }}-amd64"
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-amd64"
     dockerfile: Dockerfile
     build_flag_templates:
       - "--platform=linux/amd64"
@@ -63,9 +61,7 @@ dockers:
     goarch: amd64
   - image_templates:
       - "mccutchen/ghavm:{{ .Version }}-arm64"
-      - "mccutchen/ghavm:latest-arm64"
       - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
-      - "ghcr.io/mccutchen/ghavm:latest-arm64"
     dockerfile: Dockerfile
     build_flag_templates:
       - "--platform=linux/arm64"
@@ -83,20 +79,20 @@ dockers:
 docker_manifests:
   - name_template: "mccutchen/ghavm:{{ .Version }}"
     image_templates:
-      - "mccutchen/ghavm:{{ .Version }}"
+      - "mccutchen/ghavm:{{ .Version }}-amd64"
       - "mccutchen/ghavm:{{ .Version }}-arm64"
   - name_template: "mccutchen/ghavm:latest"
     image_templates:
-      - "mccutchen/ghavm:latest"
-      - "mccutchen/ghavm:latest-arm64"
+      - "mccutchen/ghavm:{{ .Version }}-amd64"
+      - "mccutchen/ghavm:{{ .Version }}-arm64"
   - name_template: "ghcr.io/mccutchen/ghavm:{{ .Version }}"
     image_templates:
-      - "ghcr.io/mccutchen/ghavm:{{ .Version }}"
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-amd64"
       - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
   - name_template: "ghcr.io/mccutchen/ghavm:latest"
     image_templates:
-      - "ghcr.io/mccutchen/ghavm:latest"
-      - "ghcr.io/mccutchen/ghavm:latest-arm64"
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-amd64"
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
 
 release:
   github:
