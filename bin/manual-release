@@ -54,7 +54,7 @@ fi
 echo -e "${BLUE}"
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                    Manual Release Script                     ║"
-echo "║              GitHub Actions Break-Glass Process             ║"
+echo "║              GitHub Actions Break-Glass Process              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -99,7 +99,7 @@ fi
 # Git checks (skip for snapshot)
 if [[ "$SNAPSHOT_MODE" == "false" ]]; then
     log_info "Checking git state..."
-    
+
     # Check if we're on a tag
     if ! git describe --exact-match --tags HEAD >/dev/null 2>&1; then
         log_error "Current commit is not tagged. Create and push a git tag first:"
@@ -107,10 +107,10 @@ if [[ "$SNAPSHOT_MODE" == "false" ]]; then
         echo "  git push origin v1.0.0"
         exit 1
     fi
-    
+
     current_tag=$(git describe --exact-match --tags HEAD)
     log_success "Current tag: $current_tag"
-    
+
     # Check if tag exists on remote
     if ! git ls-remote --exit-code --tags origin "$current_tag" >/dev/null 2>&1; then
         log_error "Tag $current_tag not found on remote. Push it first:"
@@ -122,25 +122,6 @@ fi
 
 # Docker authentication check
 log_info "Checking Docker registry authentication..."
-
-# Function to test registry auth
-test_registry_auth() {
-    local registry=$1
-    local test_cmd
-    
-    if [[ "$registry" == "docker.io" ]]; then
-        test_cmd="docker pull hello-world:latest"
-    else
-        test_cmd="docker pull $registry/hello-world:latest"
-    fi
-    
-    # Try to pull a small public image to test auth
-    if $test_cmd >/dev/null 2>&1; then
-        return 0
-    else
-        return 1
-    fi
-}
 
 # Test Docker Hub auth
 if ! docker info | grep -q "Username:"; then
