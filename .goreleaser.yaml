@@ -91,6 +91,15 @@ docker_manifests:
       - "ghcr.io/mccutchen/ghavm:{{ .Version }}-amd64"
       - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
 
+docker_signs:
+  - artifacts: all
+    output: true
+    cmd: cosign
+    args:
+      - "sign"
+      - "--yes"
+      - "${artifact}"
+
 release:
   github:
     owner: mccutchen

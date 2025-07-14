@@ -45,14 +45,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
+      - uses: anchore/sbom-action/download-syft@v0.20.2
 
-      - name: record binary provenance checksums
-        id: binary-provenance
-        run: |
-          set -euo pipefail
-          # Use the artifacts.json file that goreleaser generates
-          checksum_file=$(jq -r '.[] | select(.type=="Checksum") | .path' dist/artifacts.json)
-          echo "checksums=$(cat $checksum_file | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-checksums: ./dist/checksums.txt
 
       - name: sign docker images
         run: |
@@ -72,10 +69,3 @@ jobs:
           done
 
           echo "✅ all Docker images and manifests signed successfully"
-
-  binary-provenance:
-    needs: [goreleaser]
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
-    with:
-      base64-subjects: "${{ needs.goreleaser.outputs.binary-provenance-checksums }}"
-      upload-assets: true
