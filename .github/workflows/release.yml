@@ -1,4 +1,4 @@
-name: Release
+name: release
 
 on:
   release:
@@ -11,18 +11,16 @@ permissions:
   attestations: write
 
 jobs:
-  goreleaser:
+  release:
     runs-on: ubuntu-latest
-    outputs:
-      binary-provenance-checksums: ${{ steps.binary-provenance.outputs.checksums }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
-        with:
-          go-version: stable
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
+      - uses: anchore/sbom-action/download-syft@v0.20.2
 
       - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
@@ -36,7 +34,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
-        id: goreleaser
         with:
           distribution: goreleaser
           version: '~> v2'
@@ -44,28 +41,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
-      - uses: anchore/sbom-action/download-syft@v0.20.2
-
       - uses: actions/attest-build-provenance@v2
         with:
           subject-checksums: ./dist/checksums.txt
-
-      - name: sign docker images
-        run: |
-          set -euo pipefail
-          echo "signing all Docker images and manifests..."
-
-          # sign individual architecture images
-          jq -r '.[] | select(.type=="Docker Image") | .name' dist/artifacts.json | while read -r image; do
-            echo "signing image: $image"
-            cosign sign --yes "$image"
-          done
-
-          # sign multi-arch manifests
-          jq -r '.[].name' dist/artifacts.json | while read -r manifest; do
-            echo "signing manifest: $manifest"
-            cosign sign --yes "$manifest"
-          done
-
-          echo "✅ all Docker images and manifests signed successfully"

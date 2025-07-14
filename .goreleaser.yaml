@@ -93,12 +93,12 @@ docker_manifests:
 
 docker_signs:
   - artifacts: all
-    output: true
     cmd: cosign
     args:
       - "sign"
       - "--yes"
       - "${artifact}"
+    output: true
 
 release:
   github:
