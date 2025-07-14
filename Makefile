@@ -6,14 +6,14 @@ DOCS_PORT     ?= :8080
 
 # 3rd party tools
 CMD_GOFUMPT     := go run mvdan.cc/gofumpt@v0.8.0
-CMD_GORELEASER  := go run github.com/goreleaser/goreleaser@latest
+CMD_GORELEASER  := go run github.com/goreleaser/goreleaser@v2.11.0
 CMD_PKGSITE     := go run golang.org/x/pkgsite/cmd/pkgsite@latest
 CMD_REVIVE      := go run github.com/mgechev/revive@v1.9.0
 CMD_STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2025.1.1
 
-# Where built binaries will be placed (make and release, respectively)
-OUT_DIR  ?= out
-DIST_DIR ?= dist
+# Where built assets will be placed
+OUT_DIR  ?= out  # make build
+DIST_DIR ?= dist # make release
 
 
 # =============================================================================
@@ -81,11 +81,11 @@ docs:
 # ===========================================================================
 # Goreleaser
 # ===========================================================================
-release-dry-run:
+release-dry-run: clean
 	$(CMD_GORELEASER) release --snapshot --clean
 .PHONY: release-dry-run
 
-release:
+release: clean
 	$(CMD_GORELEASER) release --clean
 .PHONY: release
 
@@ -93,62 +93,38 @@ release:
 # Manual/break-glass release targets
 # ===========================================================================
 
-# Check if required environment variables are set for manual releases
-check-manual-release-env:
-	@echo "Checking environment variables for manual release..."
-	@test -n "$(GITHUB_TOKEN)" || (echo "ERROR: GITHUB_TOKEN environment variable is required"; exit 1)
-	@echo "✓ GITHUB_TOKEN is set"
-	@docker info >/dev/null 2>&1 || (echo "ERROR: Docker is not running or accessible"; exit 1)
-	@echo "✓ Docker is accessible"
-.PHONY: check-manual-release-env
-
-# Authenticate with Docker registries (run this first for manual releases)
-docker-login:
-	@echo "Logging in to Docker registries..."
-	@echo "Please log in to Docker Hub when prompted:"
-	@docker login
-	@echo "Logging in to GitHub Container Registry..."
-	@echo "$(GITHUB_TOKEN)" | docker login ghcr.io -u $(shell gh api user --jq .login 2>/dev/null || echo "$(USER)") --password-stdin
-	@echo "✓ Successfully logged in to both registries"
-.PHONY: docker-login
-
 # Full manual release (use this if GitHub Actions is down)
 # Usage: GITHUB_TOKEN=<token> make manual-release
-manual-release: check-manual-release-env
-	@echo "Starting manual release process..."
-	@echo "⚠️  This will create and push a real release!"
-	@echo "⚠️  Make sure you've already created the git tag and GitHub release!"
-	@read -p "Are you sure you want to continue? [y/N] " confirm && [ "$$confirm" = "y" ]
-	@echo "Running goreleaser..."
-	$(CMD_GORELEASER) release --clean
-	@echo "✓ Manual release completed successfully"
+manual-release:
+	./bin/manual-release
 .PHONY: manual-release
 
 # Snapshot release for testing (doesn't push to registries or create GitHub release)
-manual-release-snapshot: check-manual-release-env
-	@echo "Creating snapshot release for testing..."
-	$(CMD_GORELEASER) release --snapshot --clean
-	@echo "✓ Snapshot release completed - check the dist/ directory"
+manual-release-snapshot:
+	./bin/manual-release --snapshot
 .PHONY: manual-release-snapshot
 
 # Help target for manual release process
 manual-release-help:
 	@echo "Manual Release Process (Break-glass scenarios):"
 	@echo ""
-	@echo "1. Create git tag and GitHub release:"
-	@echo "   git tag v1.2.3"
-	@echo "   git push origin v1.2.3"
-	@echo "   # Then create GitHub release via web UI or: gh release create v1.2.3"
+	@echo "The manual release process has been moved to a shell script for better"
+	@echo "maintainability. The script handles all checks, authentication, and"
+	@echo "release steps automatically."
 	@echo ""
-	@echo "2. Set environment variables:"
-	@echo "   export GITHUB_TOKEN=<your-github-token>"
+	@echo "Usage:"
+	@echo "  # For a real release (pushes to registries and GitHub):"
+	@echo "  GITHUB_TOKEN=<token> make manual-release"
 	@echo ""
-	@echo "3. Authenticate with Docker registries:"
-	@echo "   make docker-login"
+	@echo "  # For testing (local build only, no push):"
+	@echo "  GITHUB_TOKEN=<token> make manual-release-snapshot"
 	@echo ""
-	@echo "4. Run the manual release:"
-	@echo "   make manual-release"
+	@echo "  # Or run the script directly:"
+	@echo "  GITHUB_TOKEN=<token> ./bin/manual-release [--snapshot]"
 	@echo ""
-	@echo "Alternative: Test with snapshot (no push):"
-	@echo "   make manual-release-snapshot"
+	@echo "The script will:"
+	@echo "  • Check all prerequisites (git tag, environment, Docker auth)"
+	@echo "  • Run goreleaser to build binaries and Docker images"
+	@echo "  • Sign all Docker images and manifests with cosign"
+	@echo "  • Provide clear status and error messages"
 .PHONY: manual-release-help
