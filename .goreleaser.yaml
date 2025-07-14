@@ -9,8 +9,20 @@ builds:
     goarch:
       - amd64
       - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+source:
+  enabled: true
+
+sboms:
+  - id: archive
+    artifacts: archive
+  - id: source
+    artifacts: source
 
 archives:
   - name_template: >-
