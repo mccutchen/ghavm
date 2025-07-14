@@ -1,4 +1,4 @@
-version: 1
+version: 2
 
 builds:
   - env:
@@ -12,31 +12,20 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
-# Attestations will be generated via GitHub Actions SLSA workflows
-
 archives:
-  - format: tar.gz
-    name_template: >-
+  - name_template: >-
       {{ .ProjectName }}-
       {{- .Os | tolower }}-
       {{- .Arch }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
+    formats:
+      - tar.gz
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
-
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
+  version_template: "{{ incpatch .Version }}-next"
 
 dockers:
   - image_templates:
