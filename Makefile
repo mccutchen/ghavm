@@ -17,7 +17,7 @@ DIST_DIR ?= dist # make release
 
 
 # =============================================================================
-# build
+# Build
 # =============================================================================
 build:
 	mkdir -p $(OUT_DIR)
@@ -30,7 +30,7 @@ clean:
 
 
 # =============================================================================
-# run against test data
+# Run (shortcut to quickly run against test data)
 # =============================================================================
 run: build
 	$(OUT_DIR)/ghavm list ./testdata/workflows
@@ -79,7 +79,7 @@ docs:
 
 
 # ===========================================================================
-# Goreleaser
+# Release
 # ===========================================================================
 release-dry-run: clean
 	$(CMD_GORELEASER) release --snapshot --clean
@@ -88,43 +88,3 @@ release-dry-run: clean
 release: clean
 	$(CMD_GORELEASER) release --clean
 .PHONY: release
-
-# ===========================================================================
-# Manual/break-glass release targets
-# ===========================================================================
-
-# Full manual release (use this if GitHub Actions is down)
-# Usage: GITHUB_TOKEN=<token> make manual-release
-manual-release:
-	./bin/manual-release
-.PHONY: manual-release
-
-# Snapshot release for testing (doesn't push to registries or create GitHub release)
-manual-release-snapshot:
-	./bin/manual-release --snapshot
-.PHONY: manual-release-snapshot
-
-# Help target for manual release process
-manual-release-help:
-	@echo "Manual Release Process (Break-glass scenarios):"
-	@echo ""
-	@echo "The manual release process has been moved to a shell script for better"
-	@echo "maintainability. The script handles all checks, authentication, and"
-	@echo "release steps automatically."
-	@echo ""
-	@echo "Usage:"
-	@echo "  # For a real release (pushes to registries and GitHub):"
-	@echo "  GITHUB_TOKEN=<token> make manual-release"
-	@echo ""
-	@echo "  # For testing (local build only, no push):"
-	@echo "  GITHUB_TOKEN=<token> make manual-release-snapshot"
-	@echo ""
-	@echo "  # Or run the script directly:"
-	@echo "  GITHUB_TOKEN=<token> ./bin/manual-release [--snapshot]"
-	@echo ""
-	@echo "The script will:"
-	@echo "  • Check all prerequisites (git tag, environment, Docker auth)"
-	@echo "  • Run goreleaser to build binaries and Docker images"
-	@echo "  • Sign all Docker images and manifests with cosign"
-	@echo "  • Provide clear status and error messages"
-.PHONY: manual-release-help
