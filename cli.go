@@ -14,11 +14,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Version information populated by goreleaser at build time
+// Release information populated by goreleaser at build time
 var (
-	version = "dev"
-	commit  = "unknown"
-	date    = "unknown"
+	version       = "dev"
+	commit        = "unknown"
+	versionString = fmt.Sprintf("ghavm version %s (%s)", version, commit)
 )
 
 func runApp(app *cobra.Command, args []string) error {
@@ -32,9 +32,11 @@ func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(str
 		Short: "ghavm manages version pinning and upgrades for GitHub Actions workflows.",
 		// Don't print usage when invoked command returns an error
 		SilenceUsage: true,
+
+		// Short-circuit handling of --version flag
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
-				fmt.Fprintf(cmd.OutOrStdout(), "ghavm %s (commit: %s, built: %s)\n", version, commit, date)
+				fmt.Fprintf(cmd.OutOrStdout(), versionString+"\n")
 				return nil
 			}
 			return cmd.Help()
@@ -181,17 +183,7 @@ Available modes:
 		})
 	}
 
-	// add subcommands to our root command
-	versionCmd := &cobra.Command{
-		Use:   "version",
-		Short: "Show version information",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Fprintf(cmd.OutOrStdout(), "ghavm %s (commit: %s, built: %s)\n", version, commit, date)
-			return nil
-		},
-	}
-
-	rootCmd.AddCommand(listCmd, pinCmd, upgradeCmd, versionCmd)
+	rootCmd.AddCommand(listCmd, pinCmd, upgradeCmd)
 
 	// wire up I/O
 	rootCmd.SetIn(stdin)

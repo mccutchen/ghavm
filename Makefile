@@ -12,8 +12,8 @@ CMD_REVIVE      := go run github.com/mgechev/revive@v1.9.0
 CMD_STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2025.1.1
 
 # Where built assets will be placed
-OUT_DIR  ?= out  # make build
-DIST_DIR ?= dist # make release
+OUT_DIR  ?= out
+DIST_DIR ?= dist
 
 
 # =============================================================================
@@ -80,6 +80,9 @@ docs:
 
 # ===========================================================================
 # Release
+#
+# Note: releases are built automatically via the release.yaml GitHub Actions
+# workflow when a new release is create via the GitHub UI.
 # ===========================================================================
 release-dry-run: clean
 	$(CMD_GORELEASER) release --snapshot --clean
