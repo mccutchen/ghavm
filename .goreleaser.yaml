@@ -1,0 +1,109 @@
+version: 2
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+source:
+  enabled: true
+
+sboms:
+  - id: archive
+    artifacts: archive
+  - id: source
+    artifacts: source
+
+archives:
+  - name_template: >-
+      {{ .ProjectName }}-
+      {{- .Os | tolower }}-
+      {{- .Arch }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    formats:
+      - tar.gz
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+dockers:
+  - image_templates:
+      - "mccutchen/ghavm:{{ .Version }}-amd64"
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-amd64"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.description=GitHub Actions Version Manager"
+      - "--label=org.opencontainers.image.url=https://github.com/mccutchen/ghavm"
+      - "--label=org.opencontainers.image.source=https://github.com/mccutchen/ghavm"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+    goos: linux
+    goarch: amd64
+  - image_templates:
+      - "mccutchen/ghavm:{{ .Version }}-arm64"
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.description=GitHub Actions Version Manager"
+      - "--label=org.opencontainers.image.url=https://github.com/mccutchen/ghavm"
+      - "--label=org.opencontainers.image.source=https://github.com/mccutchen/ghavm"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+    goos: linux
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "mccutchen/ghavm:{{ .Version }}"
+    image_templates:
+      - "mccutchen/ghavm:{{ .Version }}-amd64"
+      - "mccutchen/ghavm:{{ .Version }}-arm64"
+  - name_template: "mccutchen/ghavm:latest"
+    image_templates:
+      - "mccutchen/ghavm:{{ .Version }}-amd64"
+      - "mccutchen/ghavm:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/mccutchen/ghavm:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-amd64"
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/mccutchen/ghavm:latest"
+    image_templates:
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-amd64"
+      - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
+
+docker_signs:
+  - artifacts: all
+    cmd: cosign
+    args:
+      - "sign"
+      - "--yes"
+      - "${artifact}"
+    output: true
+
+release:
+  github:
+    owner: mccutchen
+    name: ghavm
+  draft: false
+  prerelease: auto
+  mode: replace

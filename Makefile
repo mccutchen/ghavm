@@ -6,16 +6,18 @@ DOCS_PORT     ?= :8080
 
 # 3rd party tools
 CMD_GOFUMPT     := go run mvdan.cc/gofumpt@v0.8.0
+CMD_GORELEASER  := go run github.com/goreleaser/goreleaser/v2@v2.11.0
 CMD_PKGSITE     := go run golang.org/x/pkgsite/cmd/pkgsite@latest
 CMD_REVIVE      := go run github.com/mgechev/revive@v1.9.0
 CMD_STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2025.1.1
 
-# Where built binaries will be placed
-OUT_DIR         ?= out
+# Where built assets will be placed
+OUT_DIR  ?= out
+DIST_DIR ?= dist
 
 
 # =============================================================================
-# build
+# Build
 # =============================================================================
 build:
 	mkdir -p $(OUT_DIR)
@@ -23,12 +25,12 @@ build:
 .PHONY: build
 
 clean:
-	rm -rf $(OUT_DIR) $(COVERAGE_PATH)
+	rm -rf $(OUT_DIR) $(DIST_DIR) $(COVERAGE_PATH)
 .PHONY: clean
 
 
 # =============================================================================
-# run against test data
+# Run (shortcut to quickly run against test data)
 # =============================================================================
 run: build
 	$(OUT_DIR)/ghavm list ./testdata/workflows
@@ -74,3 +76,18 @@ fmt:
 
 docs:
 	$(CMD_PKGSITE) -http $(DOCS_PORT)
+
+
+# ===========================================================================
+# Release
+#
+# Note: releases are built automatically via the release.yaml GitHub Actions
+# workflow when a new release is create via the GitHub UI.
+# ===========================================================================
+release-dry-run: clean
+	$(CMD_GORELEASER) release --snapshot --clean
+.PHONY: release-dry-run
+
+release: clean
+	$(CMD_GORELEASER) release --clean
+.PHONY: release

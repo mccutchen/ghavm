@@ -25,6 +25,11 @@ func TestCLI(t *testing.T) {
 			wantErr:    false,
 			wantStderr: "",
 		},
+		"version flag works": {
+			args:       []string{"--version"},
+			wantErr:    false,
+			wantStderr: "",
+		},
 		"subcommand help works": {
 			args:       []string{"pin", "--help"},
 			wantErr:    false,
