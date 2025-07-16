@@ -36,7 +36,7 @@ func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(str
 		// Short-circuit handling of --version flag
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
-				fmt.Fprintf(cmd.OutOrStdout(), versionString+"\n")
+				fprintln(cmd.OutOrStdout(), versionString)
 				return nil
 			}
 			return cmd.Help()
