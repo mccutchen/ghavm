@@ -18,7 +18,7 @@ import (
 	"sync/atomic"
 	"unicode/utf8"
 
-renameio "github.com/google/renameio/v2"
+	renameio "github.com/google/renameio/v2"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
@@ -219,7 +219,7 @@ func (e *Engine) rewriteWorkflows(ctx context.Context, strategy RewriteStrategy)
 			ctx, "writing pinned file",
 			"file", w.FilePath,
 		)
-		if err := renameio.WriteFile(w.FilePath, []byte(out.String()), 0644); err != nil {
+		if err := renameio.WriteFile(w.FilePath, []byte(out.String()), 0); err != nil {
 			return fmt.Errorf("failed to atomically replace file: %w", err)
 		}
 	}
