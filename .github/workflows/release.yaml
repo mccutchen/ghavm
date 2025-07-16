@@ -26,6 +26,9 @@ jobs:
 
       # deps
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: 'stable'
+          cache: true
       - uses: anchore/sbom-action/download-syft@v0.20.2
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
@@ -42,7 +45,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # run goreleaser to build multi-arch and multi-platform release binaries
+      # run goreleaser to build multi-arch and multi-platform release
+      # artifacts.
+      #
+      # note: artifacts will only be uploaded to a GitHub release when
+      # triggered by a new release event.
       - uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
         with:
           distribution: goreleaser
@@ -55,10 +62,8 @@ jobs:
         with:
           subject-checksums: ./dist/checksums.txt
 
-      # after binaries are built, we build and sign docker images
-      #
-      # the docker build depends on the binaries built by goreleaser in the
-      # dist/ghavm_linux_*/ build output directories.
+      # build and sign docker images, using the pre-built release artifacts
+      # goreleaser placed in the dist/ghavm_linux_*/ directories.
       - name: Clean up dist directory
         run: rm -rf dist/*.tar.gz dist/*.sbom.json dist/ghavm_darwin_*
 
