@@ -13,7 +13,7 @@ FROM gcr.io/distroless/base
 # - .github/workflows/release.yml
 # - Makefile (make release-dry-run)
 ARG TARGETARCH
-COPY dist/ghavm_linux_${TARGETARCH}_*/ghavm /usr/local/bin/ghavm
+COPY ghavm_linux_${TARGETARCH}_*/ghavm /usr/local/bin/ghavm
 
 # Run with, e.g., --volume $(PWD):/src:rw
 WORKDIR /src
