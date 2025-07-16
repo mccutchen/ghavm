@@ -41,6 +41,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: sign images with cosign
+        run: |
+          GIT_TAG=${GITHUB_REF#refs/tags/}
+          DOCKER_TAG=${GIT_TAG#v} # remove 'v' prefix
+
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/mccutchen/ghavm:$DOCKER_TAG | grep "Digest:" | awk '{print $2}')
+
+          images=""
+          images+="ghcr.io/mccutchen/ghavm:$DOCKER_TAG@$DIGEST "
+          images+="ghcr.io/mccutchen/ghavm:latest@$DIGEST "
+          images+="mccutchen/ghavm:$DOCKER_TAG@$DIGEST "
+          images+="mccutchen/ghavm:latest@$DIGEST "
+
+          cosign sign --yes ${images}
+
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-checksums: ./dist/checksums.txt

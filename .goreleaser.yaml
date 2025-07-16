@@ -56,6 +56,7 @@ dockers:
       - "--label=org.opencontainers.image.licenses=MIT"
     goos: linux
     goarch: amd64
+    use: buildx
   - image_templates:
       - "mccutchen/ghavm:{{ .Version }}-arm64"
       - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
@@ -72,6 +73,8 @@ dockers:
       - "--label=org.opencontainers.image.licenses=MIT"
     goos: linux
     goarch: arm64
+    use: buildx
+    skip_push: true
 
 docker_manifests:
   - name_template: "mccutchen/ghavm:{{ .Version }}"
@@ -90,15 +93,6 @@ docker_manifests:
     image_templates:
       - "ghcr.io/mccutchen/ghavm:{{ .Version }}-amd64"
       - "ghcr.io/mccutchen/ghavm:{{ .Version }}-arm64"
-
-docker_signs:
-  - artifacts: all
-    cmd: cosign
-    args:
-      - "sign"
-      - "--yes"
-      - "${artifact}"
-    output: true
 
 release:
   github:

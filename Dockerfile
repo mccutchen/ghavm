@@ -15,4 +15,8 @@ FROM gcr.io/distroless/base
 #
 COPY ghavm /usr/local/bin/ghavm
 
+# Run with, e.g., --volume $(PWD):/src:rw
+WORKDIR /src
+VOLUME  /src
+
 ENTRYPOINT ["/usr/local/bin/ghavm"]

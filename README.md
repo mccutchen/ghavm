@@ -19,6 +19,23 @@ problem `ghavm` helps solve, and further reading on properly securing GitHub
 Actions workflows.
 
 
+## Installation
+
+- Install [latest release][release] from GitHub
+- Run Docker/OCI image:
+  ```
+  docker run --rm -e GITHUB_TOKEN -v $(PWD):/src ghcr.io/mccutchen/ghavm pin
+  ```
+- Install or run using a local Go toolchain:
+  ```
+  go install github.com/mccutchen/ghavm@latest
+  ```
+  or
+  ```
+  go run github.com/mccutchen/ghavm@latest pin
+  ```
+
+
 ## Getting started
 
 First, you might use `ghavm pin` to **pin your actions to immutable commit
@@ -233,5 +250,6 @@ MIT
 [wiz-sec]: https://www.wiz.io/blog/github-actions-security-guide
 [step-sec]: https://www.stepsecurity.io/blog/pinning-github-actions-for-enhanced-security-a-complete-guide
 [gg-sec]: https://blog.gitguardian.com/github-actions-security-cheat-sheet/
+[release]: https://github.com/mccutchen/ghavm/releases/latest
 [mheap/pin-github-action]: https://github.com/mheap/pin-github-action
 [dependabot]: https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories#github-actions
