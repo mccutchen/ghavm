@@ -1,8 +1,14 @@
 name: release
 
-on:
+"on":
   release:
     types: [created]
+  # we do not build and push images for every commit, only for tagged releases.
+  # uncomment this to enablle building for pull requests, to debug this
+  # workflow.
+  #
+  # pull_request:
+  #   branches: [main]
 
 permissions:
   contents: write
@@ -22,6 +28,24 @@ jobs:
       - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
       - uses: anchore/sbom-action/download-syft@v0.20.2
 
+      # first, run goreleaser to build multi-arch and multi-platform release
+      # artifacts.
+      - uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean ${{ github.event_name == 'pull_request' && ' --snapshot' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+          with:
+            subject-checksums: ./dist/checksums.txt
+
+      # after binaries are built, we build and sign docker images.
+      #
+      # the docker build depends on the binaries built by goreleaser in the
+      # dist/ghavm_linux_*/ build output directories.
       - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -33,29 +57,49 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
-        with:
-          distribution: goreleaser
-          version: '~> v2'
-          args: release --clean
+      - uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        id: docker-meta
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # https://docs.docker.com/build/ci/github-actions/annotations/#configure-annotation-level
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+        with:
+          images: |
+            ${{ github.repository }}
+            ghcr.io/${{ github.repository }}
+          tags: |
+            # For releases, use the standard tags and special "latest" tag
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+
+            # For pull requests, use the commit SHA
+            #
+            # Note that this is disabled by default, but can be enabled for
+            # debugging purposes by uncommenting the pull_request trigger at
+            # top of the workflow.
+            type=sha,format=short,enable=${{ github.event_name == 'pull_request' }}
+
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        id: docker-build
+        with:
+          context: dist
+          platforms: linux/amd64,linux/arm64
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          annotations: ${{ steps.docker-meta.outputs.annotations }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: sign images with cosign
+        env:
+          DIGEST: ${{ steps.docker-build.outputs.digest }}
+          TAGS: ${{ steps.docker-meta.outputs.tags }}
         run: |
-          GIT_TAG=${GITHUB_REF#refs/tags/}
-          DOCKER_TAG=${GIT_TAG#v} # remove 'v' prefix
-
-          DIGEST=$(docker buildx imagetools inspect ghcr.io/mccutchen/ghavm:$DOCKER_TAG | grep "Digest:" | awk '{print $2}')
-
           images=""
-          images+="ghcr.io/mccutchen/ghavm:$DOCKER_TAG@$DIGEST "
-          images+="ghcr.io/mccutchen/ghavm:latest@$DIGEST "
-          images+="mccutchen/ghavm:$DOCKER_TAG@$DIGEST "
-          images+="mccutchen/ghavm:latest@$DIGEST "
-
+          for tag in ${TAGS}; do
+            images+="${tag}@${DIGEST} "
+          done
           cosign sign --yes ${images}
-
-      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
-        with:
-          subject-checksums: ./dist/checksums.txt
