@@ -64,7 +64,7 @@ jobs:
 
       # build and sign docker images, using the pre-built release artifacts
       # goreleaser placed in the dist/ghavm_linux_*/ directories.
-      - name: Clean up dist directory
+      - name: "Run script: clean up dist directory"
         run: rm -rf dist/*.tar.gz dist/*.sbom.json dist/ghavm_darwin_*
 
       - uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
@@ -104,7 +104,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Sign images with cosign
+      - name: "Run script: sign images with cosign"
         env:
           DIGEST: ${{ steps.docker-build.outputs.digest }}
           TAGS: ${{ steps.docker-meta.outputs.tags }}
