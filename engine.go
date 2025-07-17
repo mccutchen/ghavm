@@ -80,11 +80,10 @@ func newEngine(root Root, ghClient *GitHubClient, logOut io.Writer, opts engineO
 		fancy: opts.Fancy,
 		style: style,
 	}
-	phaseLog.precomputeColumnWidths(root)
 	return &Engine{
 		root:     root,
 		gh:       ghClient,
-		workers:  min(opts.Workers, 1),
+		workers:  max(opts.Workers, 1),
 		strict:   opts.Strict,
 		style:    style,
 		phaseLog: phaseLog,
@@ -454,10 +453,8 @@ type PhaseLogger struct {
 	out         io.Writer
 	diagnostics map[string][]DiagnosticRecord // workflow path -> records
 
-	style         *style.Style
-	fancy         bool
-	workflowWidth int
-	stepWidth     int
+	style *style.Style
+	fancy bool
 
 	phaseStarted  atomic.Bool
 	inPlaceWrites atomic.Int64
@@ -515,8 +512,7 @@ func (pl *PhaseLogger) logPhaseStatus(level Level, workflow Workflow, step *Step
 	if !pl.phaseStarted.Load() {
 		panic("PhaseLogger: phase must be started before updating status: " + msg)
 	}
-	headerTmpl := fmt.Sprintf("workflow=%%-%ds action=%%-%ds", pl.workflowWidth, pl.stepWidth)
-	header := fmt.Sprintf(headerTmpl, pl.style.Boldf(filepath.Base(workflow.FilePath)), pl.style.Boldf(step.Action.Name))
+	header := fmt.Sprintf("workflow=%s action=%s", pl.style.Boldf(filepath.Base(workflow.FilePath)), pl.style.Boldf(step.Action.Name))
 	msg = fmt.Sprintf(msg, args...)
 	switch level {
 	case LevelError:
@@ -550,13 +546,21 @@ func (pl *PhaseLogger) ShowDiagnostics() {
 		return
 	}
 
-	msgPrefixTmpl := fmt.Sprintf("%%5s %%-%ds → ", pl.stepWidth)
+	maxStepWidth := func(recs []DiagnosticRecord) int {
+		width := 0
+		for _, rec := range recs {
+			width = max(width, len(rec.Step.Action.Name))
+		}
+		return width
+	}
 
 	fprintln(pl.out, pl.style.Boldf("diagnostics"))
 	workflowKeys := slices.Sorted(maps.Keys(pl.diagnostics))
 	for _, workflow := range workflowKeys {
+		recs := pl.diagnostics[workflow]
+		msgPrefixTmpl := fmt.Sprintf("%%5s %%-%ds → ", maxStepWidth(recs))
 		fprintln(pl.out, " ", pl.style.Boldf(workflow))
-		for _, rec := range pl.diagnostics[workflow] {
+		for _, rec := range recs {
 			msgPrefix := fmt.Sprintf(msgPrefixTmpl, rec.Level, rec.Step.Action.Name)
 			msg := fmt.Sprintf("    %s%s", msgPrefix, rec.Msg)
 			switch rec.Level {
@@ -565,10 +569,10 @@ func (pl *PhaseLogger) ShowDiagnostics() {
 			case LevelError:
 				msg = pl.style.Red(msg)
 			}
-
 			fprintln(pl.out, msg)
 		}
 	}
+
 	fprintln(pl.out)
 }
 
@@ -608,15 +612,6 @@ func (pl *PhaseLogger) writeInPlace(header string, msg string) {
 		fprintln(pl.out, pl.truncateLine("  ↳ "+msg))
 	} else {
 		fprintln(pl.out, header, "→", msg)
-	}
-}
-
-func (pl *PhaseLogger) precomputeColumnWidths(root Root) {
-	for _, workflow := range root.Workflows {
-		pl.workflowWidth = max(pl.workflowWidth, len(filepath.Base(workflow.FilePath)))
-		for _, step := range workflow.Steps {
-			pl.stepWidth = max(pl.stepWidth, len(step.Action.Name))
-		}
 	}
 }
 

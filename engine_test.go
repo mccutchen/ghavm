@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -166,6 +167,29 @@ func diffStrings(t testing.TB, a, b string) string {
 		}
 	}
 	return stdout.String()
+}
+
+func TestNewEngine(t *testing.T) {
+	t.Parallel()
+	{
+		// opts.Workers is not set, so it should default to 1.
+		engine := newEngine(Root{}, nil, io.Discard, engineOpts{})
+		assert.Equal(t, engine.workers, 1, "expected workers to be 1")
+	}
+	{
+		// opts.Workers is negative, so it should default to 1.
+		engine := newEngine(Root{}, nil, io.Discard, engineOpts{
+			Workers: -1,
+		})
+		assert.Equal(t, engine.workers, 1, "expected workers to be 1")
+	}
+	{
+		// opts.Workers is used
+		engine := newEngine(Root{}, nil, io.Discard, engineOpts{
+			Workers: 4,
+		})
+		assert.Equal(t, engine.workers, 4, "expected workers to be 4")
+	}
 }
 
 func TestTruncateToDisplayWidth(t *testing.T) {
