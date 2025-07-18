@@ -85,7 +85,7 @@ docs:
 # workflow when a new release is create via the GitHub UI.
 # ===========================================================================
 release-dry-run: clean
-	$(CMD_GORELEASER) release --snapshot --clean
+	$(CMD_GORELEASER) release --snapshot --clean --verbose
 .PHONY: release-dry-run
 
 release: clean
