@@ -69,4 +69,4 @@ notarize:
 
         # this can apparently take a long time?
         wait: true
-        timeout: 20m
+        timeout: 60m
