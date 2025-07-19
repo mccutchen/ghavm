@@ -31,7 +31,7 @@ runs:
       if: ${{ inputs.cache == 'false' || steps.cache-quill.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
-        VERSION="${${{ inputs.version }}#v}"
+        VERSION="${{ inputs.version }}"
 
         case "$(uname -m)" in
           x86_64) ARCH="amd64" ;;
