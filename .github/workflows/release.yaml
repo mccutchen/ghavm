@@ -7,8 +7,8 @@ name: release
   # uncomment this to enablle building for pull requests, to debug this
   # workflow.
   #
-  # pull_request:
-  #   branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
@@ -29,9 +29,16 @@ jobs:
         with:
           go-version: 'stable'
           cache: true
+
       - uses: anchore/sbom-action/download-syft@v0.20.2
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
+      - uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
+        with:
+          install-only: true
+      - uses: ./.github/actions/install-quill
+        with:
+          version: 0.5.1
 
       # log into docker registries
       - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
@@ -50,13 +57,18 @@ jobs:
       #
       # note: artifacts will only be uploaded to a GitHub release when
       # triggered by a new release event.
-      - uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
-        with:
-          distribution: goreleaser
-          version: '~> v2'
-          args: release --clean ${{ github.event_name == 'pull_request' && ' --snapshot' || '' }}
+      - name: "Run script: make release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QUILL_NOTARY_ISSUER: ${{ secrets.QUILL_NOTARY_ISSUER }}
+          QUILL_NOTARY_KEY: ${{ secrets.QUILL_NOTARY_KEY }}
+          QUILL_NOTARY_KEY_ID: ${{ secrets.QUILL_NOTARY_KEY_ID }}
+          QUILL_SIGN_P12: ${{ secrets.QUILL_SIGN_P12 }}
+          QUILL_SIGN_PASSWORD: ${{ secrets.QUILL_SIGN_PASSWORD }}
+        run:
+          # on pull requests, we run `make release-dry-run` and on actual
+          # releases we run `make release`
+          make release${{ github.event_name == 'pull_request' && '-dry-run' || '' }} CMD_GORELEASER="goreleaser"
 
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
@@ -64,7 +76,7 @@ jobs:
 
       # build and sign docker images, using the pre-built release artifacts
       # goreleaser placed in the dist/ghavm_linux_*/ directories.
-      - name: "Run script: clean up dist directory"
+      - name: "Run script: clean up dist dir before docker builds"
         run: rm -rf dist/*.tar.gz dist/*.sbom.json dist/ghavm_darwin_*
 
       - uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0

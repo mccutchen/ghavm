@@ -15,6 +15,17 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
+# replace per-arch macos binaries with a single universal binary
+universal_binaries:
+  - replace: true
+    hooks:
+      post:
+        - cmd: quill sign-and-notarize "{{ .Path }}"
+          env:
+            # - QUILL_AD_HOC={{ .IsSnapshot }}
+            # - QUILL_DRY_RUN={{ .IsSnapshot }}
+            - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
+
 source:
   enabled: true
 
