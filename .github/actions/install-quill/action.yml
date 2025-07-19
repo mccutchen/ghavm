@@ -46,7 +46,7 @@ runs:
         TEMP_DIR=$(mktemp -d)
         cd "$TEMP_DIR"
 
-        curl -L "https://github.com/anchore/quill/releases/download/v${VERSION}/quill_${VERSION}_${PLATFORM}.tar.gz" -o quill.tar.gz
+        curl -L -O "https://github.com/anchore/quill/releases/download/v${VERSION}/quill_${VERSION}_${PLATFORM}.tar.gz"
         curl -L "https://github.com/anchore/quill/releases/download/v${VERSION}/quill_${VERSION}_checksums.txt" -o checksums.txt
         sha256sum -c <(grep "quill_${VERSION}_${PLATFORM}.tar.gz" checksums.txt)
 
