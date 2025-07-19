@@ -97,7 +97,7 @@ fmt:
 # ===========================================================================
 release-dry-run: clean
 	$(CMD_GORELEASER) release --snapshot --clean --verbose
-	$(CMD_QUILL) sign-and-notarize -v $(DIST_DIR)/ghavm_darwin_all/ghavm --dry-run
+	$(CMD_QUILL) sign-and-notarize -v $(DIST_DIR)/ghavm_darwin_all/ghavm
 .PHONY: release-dry-run
 
 release: clean
