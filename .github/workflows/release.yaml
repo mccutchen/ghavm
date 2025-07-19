@@ -62,11 +62,11 @@ jobs:
       - name: "Run script: make release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          QUILL_NOTARY_ISSUER: ${{ secrets.MACOS_NOTARY_ISSUER }}
-          QUILL_NOTARY_KEY: ${{ secrets.MACOS_NOTARY_KEY }}
-          QUILL_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
-          QUILL_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
-          QUILL_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
+          QUILL_NOTARY_ISSUER: ${{ secrets.QUILL_NOTARY_ISSUER }}
+          QUILL_NOTARY_KEY: ${{ secrets.QUILL_NOTARY_KEY }}
+          QUILL_NOTARY_KEY_ID: ${{ secrets.QUILL_NOTARY_KEY_ID }}
+          QUILL_SIGN_P12: ${{ secrets.QUILL_SIGN_P12 }}
+          QUILL_SIGN_PASSWORD: ${{ secrets.QUILL_SIGN_PASSWORD }}
         run:
           # on pull requests, we run `make release-dry-run` and on actual
           # releases we run `make release`
