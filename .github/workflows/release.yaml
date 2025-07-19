@@ -45,7 +45,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@2f8e54208210a422b2efd51efaa6bd6d7ca8920f # v3.4.3
         with:
           path: |
             ~/.cache/go-build
@@ -70,8 +70,7 @@ jobs:
         run:
           # on pull requests, we run `make release-dry-run` and on actual
           # releases we run `make release`
-          TARGET=release${{ github.event_name == 'pull_request' && '-dry-run' || '' }}
-          make $TARGET
+          make release${{ github.event_name == 'pull_request' && '-dry-run' || '' }}
 
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
