@@ -7,8 +7,8 @@ name: release
   # Uncomment this to enablle building for pull requests, to debug this
   # workflow.
   #
-  pull_request:
-    branches: [main]
+  # pull_request:
+  #   branches: [main]
 
 permissions:
   contents: write
