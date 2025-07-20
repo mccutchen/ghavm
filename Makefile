@@ -7,7 +7,7 @@ DOCS_PORT     ?= :8080
 # 3rd party tools
 CMD_GOFUMPT     := go run mvdan.cc/gofumpt@v0.8.0
 CMD_GORELEASER  := go run github.com/goreleaser/goreleaser/v2@v2.11.0
-CMD_PKGSITE     := go run golang.org/x/pkgsite/cmd/pkgsite@latest
+CMD_QUILL       := go run github.com/anchore/quill/cmd/quill@v0.5.1
 CMD_REVIVE      := go run github.com/mgechev/revive@v1.9.0
 CMD_STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2025.1.1
 
@@ -74,20 +74,34 @@ fmt:
 .PHONY: fmt
 
 
-docs:
-	$(CMD_PKGSITE) -http $(DOCS_PORT)
-
-
 # ===========================================================================
 # Release
+# ===========================================================================
 #
-# Note: releases are built automatically via the release.yaml GitHub Actions
+# Note: Releases are built automatically via the release.yaml GitHub Actions
 # workflow when a new release is create via the GitHub UI.
+#
+# The release target requires valid values for these env vars:
+#
+#   QUILL_SIGN_P12
+#   QUILL_SIGN_PASSWORD
+#   QUILL_NOTARY_ISSUER
+#   QUILL_NOTARY_KEY_ID
+#   QUILL_NOTARY_KEY
+#
+# See quill's usage docs[1] and goreleaser's macOS notarization docs[2] for
+# more info about these values and how to generate them.
+#
+# [1]: https://github.com/anchore/quill/blob/main/README.md#usage
+# [2]: https://goreleaser.com/customization/notarize/
 # ===========================================================================
 release-dry-run: clean
-	$(CMD_GORELEASER) release --snapshot --clean
+	$(CMD_GORELEASER) release --snapshot --clean --verbose
 .PHONY: release-dry-run
 
 release: clean
 	$(CMD_GORELEASER) release --clean
 .PHONY: release
+
+release-notarize:
+	$(CMD_QUILL) sign-and-notarize $(DIST_DIR)/ghavm_darwin_all/ghavm
