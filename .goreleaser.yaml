@@ -20,10 +20,13 @@ universal_binaries:
   - replace: true
     hooks:
       post:
-        - cmd: quill sign-and-notarize "{{ .Path }}"
+        # FIXME: drop this manual quill invocation if I can ever figure out
+        # why goreleaser's built-in, quill-based notarization support doesn't
+        # work. See the disabled notarize: step below for more context.
+        - cmd: make release-notarize
           env:
-            # - QUILL_AD_HOC={{ .IsSnapshot }}
-            # - QUILL_DRY_RUN={{ .IsSnapshot }}
+            - QUILL_AD_HOC={{ .IsSnapshot }}
+            - QUILL_DRY_RUN={{ .IsSnapshot }}
             - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
 source:
@@ -58,25 +61,54 @@ release:
   prerelease: auto
   mode: replace
 
-# Adapted from official docs:
-# https://goreleaser.com/customization/notarize/#cross-platform
+# FIXME: this step is disabled in favor of the manual quill invocation in the
+# universal_binaries: step above, until I can figure out why goreleaser's
+# built-in, quill-based notarization support doesn't work.
 #
-# Note: this is currently disabled, because for unknown reasons it fails
-# with an authentication error despite the exact same version of quill
-# (0.5.11) working fine with the exact same credentials.
+# For inscrutable reasons, when using the exact same credentials, goreleaser's
+# notarization attempts fail with a 401 Unauthorized error:
+#
+#     $ make release-dry-run
+#     [... snip ...]
+#       • sign & notarize macOS binaries
+#       • signing                                        binary=dist/ghavm_darwin_all/ghavm
+#       • notarizing and waiting - this might take a while binary=dist/ghavm_darwin_all/ghavm
+#     ⨯ release failed after 3s                          error=notarize: macos: dist/ghavm_darwin_all/ghavm: unable to
+#       start submission: http status="401 Unauthorized":
+#       body="Unauthenticated\n\nRequest ID: 4LBNFD32YYRMV2263S4YLLG2ZE.0.0\n"h
+#
+# Compare that to
+#
+#     $ make release
+#     $ go run github.com/anchore/quill/cmd/quill@latest sign-and-notarize dist/ghavm_darwin_all/ghavm
+#
+# which will successfully notarize the universal binary that was just built.
+#
+# (Look at the .Env references in the config below for the env vars needed for
+# both of the example commands above.)
+#
+# We could simplify our GitHub Actions release.yaml workflow if goreleaser
+# could handle this directly, which would yield more useful/obvious output and
+# let us drop the custom install-quill step we currently use.
+#
+# It would be a lot nicer if goreleaser could handle this directly, because it
+# would let us simplify our GH Actions release workflow (drop manual quill
+# installation) and improve goreleaser output (dedicated top level notary
+# stage instead of hiding it an easy-to-miss post build hook).
+#
+# See goreleaser's docs for this configuration:
+# https://goreleaser.com/customization/notarize/#cross-platform
 notarize:
   macos:
-    - enabled: false  # enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
+    - enabled: false
 
       sign:
-        certificate: "{{.Env.MACOS_SIGN_P12}}"
-        password: "{{.Env.MACOS_SIGN_PASSWORD}}"
+        certificate: "{{.Env.QUILL_SIGN_P12}}"
+        password: "{{.Env.QUILL_SIGN_PASSWORD}}"
 
       notarize:
-        issuer_id: "{{.Env.MACOS_NOTARY_ISSUER}}"
-        key_id: "{{.Env.MACOS_NOTARY_KEY_ID}}"
-        key: "{{.Env.MACOS_NOTARY_KEY}}"
-
-        # this can apparently take a long time?
+        issuer_id: "{{.Env.QUILL_NOTARY_ISSUER}}"
+        key_id: "{{.Env.QUILL_NOTARY_KEY_ID}}"
+        key: "{{.Env.QUILL_NOTARY_KEY}}"
         wait: true
         timeout: 60m

@@ -102,3 +102,6 @@ release-dry-run: clean
 release: clean
 	$(CMD_GORELEASER) release --clean
 .PHONY: release
+
+release-notarize:
+	$(CMD_QUILL) sign-and-notarize $(DIST_DIR)/ghavm_darwin_all/ghavm
