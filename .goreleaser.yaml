@@ -18,13 +18,13 @@ builds:
 # replace per-arch macos binaries with a single universal binary
 universal_binaries:
   - replace: true
-    # hooks:
-    #   post:
-    #     - cmd: quill sign-and-notarize "{{ .Path }}"
-    #       env:
-    #         # - QUILL_AD_HOC={{ .IsSnapshot }}
-    #         # - QUILL_DRY_RUN={{ .IsSnapshot }}
-    #         - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
+    hooks:
+      post:
+        - cmd: quill sign-and-notarize "{{ .Path }}"
+          env:
+            # - QUILL_AD_HOC={{ .IsSnapshot }}
+            # - QUILL_DRY_RUN={{ .IsSnapshot }}
+            - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
 source:
   enabled: true
@@ -60,9 +60,13 @@ release:
 
 # Adapted from official docs:
 # https://goreleaser.com/customization/notarize/#cross-platform
+#
+# Note: this is currently disabled, because for unknown reasons it fails
+# with an authentication error despite the exact same version of quill
+# (0.5.11) working fine with the exact same credentials.
 notarize:
   macos:
-    - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
+    - enabled: false  # enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
 
       sign:
         certificate: "{{.Env.MACOS_SIGN_P12}}"

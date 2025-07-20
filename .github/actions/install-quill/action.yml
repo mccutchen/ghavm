@@ -50,13 +50,10 @@ runs:
         curl -L "https://github.com/anchore/quill/releases/download/v${VERSION}/quill_${VERSION}_checksums.txt" -o checksums.txt
         sha256sum -c <(grep "quill_${VERSION}_${PLATFORM}.tar.gz" checksums.txt)
 
-        tar xzf quill.tar.gz
+        tar xzf "quill_${VERSION}_${PLATFORM}.tar.gz"
         mkdir -p ~/.local/bin
         mv quill ~/.local/bin/
         chmod +x ~/.local/bin/quill
-
-        cd /
-        rm -rf "$TEMP_DIR"
 
         echo "Quill ${VERSION} installed successfully"
 
