@@ -72,7 +72,7 @@ jobs:
           # installed by the goreleaser/goreleaser-action above instead
           # using the Makefile's default `go run ...` approach because it
           # takes a long time to build the app.
-          CMD_GORELEASER="goreleaser" make release${{ github.event_name == 'pull_request' && '-dry-run' || '' }}
+          make release${{ github.event_name == 'pull_request' && '-dry-run' || '' }} CMD_GORELEASER="goreleaser"
 
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
