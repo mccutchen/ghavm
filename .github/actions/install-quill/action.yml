@@ -61,5 +61,4 @@ runs:
       shell: bash
       run: |
         sudo cp ~/.local/bin/quill /usr/local/bin/
-        chmod +x /usr/local/bin/quill
         quill --version
