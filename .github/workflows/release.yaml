@@ -65,10 +65,10 @@ jobs:
           QUILL_SIGN_P12: ${{ secrets.QUILL_SIGN_P12 }}
           QUILL_SIGN_PASSWORD: ${{ secrets.QUILL_SIGN_PASSWORD }}
         run:
-          # on pull requests, we run `make release-dry-run` and on actual
+          # On pull requests, we run `make release-dry-run` and on actual
           # releases we run `make release`
           #
-          # note that we override the CMD_GORELEASER var to use the binary
+          # Note that we override the CMD_GORELEASER var to use the binary
           # installed by the goreleaser/goreleaser-action above instead
           # using the Makefile's default `go run ...` approach because it
           # takes a long time to build the app.
@@ -78,7 +78,7 @@ jobs:
         with:
           subject-checksums: ./dist/checksums.txt
 
-      # build and sign docker images, using the pre-built release artifacts
+      # Build and sign docker images, using the pre-built release artifacts
       # goreleaser placed in the dist/ghavm_linux_*/ directories.
       - name: "Run script: clean up dist dir before docker builds"
         run: rm -rf dist/*.tar.gz dist/*.sbom.json dist/ghavm_darwin_*
