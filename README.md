@@ -21,16 +21,16 @@ Actions workflows.
 
 ## Installation
 
-- Install [latest release][release] from GitHub
-- Run Docker/OCI image:
+There are a number of ways to install and/or run `ghavm`:
+
+- Install the [latest release][release] from GitHub
+
+- Run as a Docker/OCI image:
   ```
   docker run --rm -e GITHUB_TOKEN -v $(PWD):/src ghcr.io/mccutchen/ghavm pin
   ```
-- Install or run using a local Go toolchain:
-  ```
-  go install github.com/mccutchen/ghavm@latest
-  ```
-  or
+
+- Run from source using a local Go toolchain:
   ```
   go run github.com/mccutchen/ghavm@latest pin
   ```
@@ -124,22 +124,6 @@ $ go run github.com/mccutchen/ghavm@latest upgrade --mode=latest
 >
 > **Example:** Pass `--exclude "actions/*"` to leave official first-party
 > actions owned by GitHub unpinned.
-
-
-## Installation
-
-Until we publish prebuilt binaries, you'll need a Go toolchain to install
-`ghavm`:
-
-```bash
-go install github.com/mccutchen/ghavm@latest
-```
-
-Or, run it directly without explicit installation:
-
-```bash
-go run github.com/mccutchen/ghavm@latest
-```
 
 
 ## Usage
