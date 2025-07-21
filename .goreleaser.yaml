@@ -1,5 +1,10 @@
 version: 2
 
+# sort tags by date, so that a final release tag will be chosen over a
+# pre-release tag when they point to the same commit.
+git:
+  tag_sort: "-creatordate"
+
 builds:
   - env:
       - CGO_ENABLED=0
