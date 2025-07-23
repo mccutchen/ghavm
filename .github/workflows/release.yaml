@@ -22,14 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: 'stable'
-          cache: true
+          # caching explicitly disabled in release workflows
+          # https://docs.zizmor.sh/audits/#cache-poisoning
+          cache: false
 
-      - uses: anchore/sbom-action/download-syft@v0.20.2
+      - uses: anchore/sbom-action/download-syft@7b36ad622f042cab6f59a75c2ac24ccb256e9b45 # v0.20.4
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
 
