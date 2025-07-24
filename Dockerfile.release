@@ -4,14 +4,15 @@ FROM gcr.io/distroless/base
 # multi-arch images to be published to public registries for every release.
 #
 # The binaries are first cross-compiled on the host machine by goreleaser and
-# copied into the image directly.
+# copied into the image directly, so the context when building this image must
+# be the dist subdirectory populated by goreleaser (see `make release`).
 #
-# It is not meant to be built manually.
+# It is not meant to be built manually via e.g. `docker build`.
 #
 # References:
 # - .goreleaser.yaml
 # - .github/workflows/release.yml
-# - Makefile (make release-dry-run)
+# - Makefile (make release)
 ARG TARGETARCH
 COPY ghavm_linux_${TARGETARCH}_*/ghavm /usr/local/bin/ghavm
 
