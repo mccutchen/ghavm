@@ -3,11 +3,13 @@ package main
 
 import (
 	"os"
+
+	"github.com/mccutchen/ghavm/internal/ghavm"
 )
 
 func main() {
-	app := newApp(os.Stdin, os.Stdout, os.Stderr, os.Getenv)
-	if err := runApp(app, os.Args[1:]); err != nil {
+	app := ghavm.NewApp(os.Stdin, os.Stdout, os.Stderr, os.Getenv)
+	if err := ghavm.RunApp(app, os.Args[1:]); err != nil {
 		os.Exit(1)
 	}
 }

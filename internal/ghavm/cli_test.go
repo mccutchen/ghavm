@@ -1,4 +1,4 @@
-package main
+package ghavm
 
 import (
 	"strings"
@@ -89,7 +89,7 @@ func TestCLI(t *testing.T) {
 			}
 			app, _, stderr := newTestApp(getenv)
 
-			err := runApp(app, tc.args)
+			err := RunApp(app, tc.args)
 			if tc.wantErr && err == nil {
 				t.Fatalf("expected error but got none for args: %v", tc.args)
 			} else if !tc.wantErr {

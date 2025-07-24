@@ -1,4 +1,4 @@
-package main
+package ghavm
 
 import (
 	"context"
@@ -21,12 +21,12 @@ var (
 	versionString = fmt.Sprintf("ghavm version %s (%s)", version, commit)
 )
 
-func runApp(app *cobra.Command, args []string) error {
+func RunApp(app *cobra.Command, args []string) error {
 	app.SetArgs(args)
 	return app.Execute()
 }
 
-func newApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(string) string) *cobra.Command {
+func NewApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(string) string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "ghavm",
 		Short: "ghavm manages version pinning and upgrades for GitHub Actions workflows.",

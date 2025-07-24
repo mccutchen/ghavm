@@ -1,26 +1,36 @@
-package main
+package ghavm
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+	"runtime"
 	"testing"
 
-	"github.com/mccutchen/ghavm/internal/testing/assert"
 	"github.com/spf13/cobra"
+
+	"github.com/mccutchen/ghavm/internal/testing/assert"
 )
 
-//go:embed testdata/golden/*.outdir
-var goldenDirs embed.FS
+func TestMain(m *testing.M) {
+	// change to the root of the project for all tests, so that testdata can
+	// be accesssed relative to the project root.
+	_, filename, _, _ := runtime.Caller(0)
+	dir := path.Join(path.Dir(filename), "..", "..")
+	if err := os.Chdir(dir); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
 
 func newTestApp(getenv func(string) string) (app *cobra.Command, stdout *bytes.Buffer, stderr *bytes.Buffer) {
 	stdout = &bytes.Buffer{}
 	stderr = &bytes.Buffer{}
-	app = newApp(nil, stdout, stderr, getenv)
+	app = NewApp(nil, stdout, stderr, getenv)
 	return
 }
 
@@ -94,7 +104,7 @@ func TestIntegrationTests(t *testing.T) {
 	tmpDir := t.TempDir()
 	pristineDir := filepath.Join("testdata", "workflows")
 
-	dirEntries, err := goldenDirs.ReadDir(filepath.Join("testdata", "golden"))
+	dirEntries, err := os.ReadDir(filepath.Join("testdata", "golden"))
 	assert.NilError(t, err)
 
 	var goldenDirs []string
