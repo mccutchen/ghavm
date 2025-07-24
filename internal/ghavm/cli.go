@@ -14,19 +14,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Release information populated by goreleaser at build time
-var (
-	version       = "dev"
-	commit        = "unknown"
-	versionString = fmt.Sprintf("ghavm version %s (%s)", version, commit)
-)
-
 func RunApp(app *cobra.Command, args []string) error {
 	app.SetArgs(args)
 	return app.Execute()
 }
 
-func NewApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(string) string) *cobra.Command {
+func NewApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(string) string, versionInfo string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "ghavm",
 		Short: "ghavm manages version pinning and upgrades for GitHub Actions workflows.",
@@ -36,7 +29,7 @@ func NewApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(str
 		// Short-circuit handling of --version flag
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
-				fprintln(cmd.OutOrStdout(), versionString)
+				fprintln(cmd.OutOrStdout(), versionInfo)
 				return nil
 			}
 			return cmd.Help()

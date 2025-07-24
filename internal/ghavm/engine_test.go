@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 func newTestApp(getenv func(string) string) (app *cobra.Command, stdout *bytes.Buffer, stderr *bytes.Buffer) {
 	stdout = &bytes.Buffer{}
 	stderr = &bytes.Buffer{}
-	app = NewApp(nil, stdout, stderr, getenv)
+	app = NewApp(nil, stdout, stderr, getenv, "test version")
 	return
 }
 
