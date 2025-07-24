@@ -1,5 +1,7 @@
 package main
 
+import "strings"
+
 // Root is the root of a tree of worfklows and their steps.
 type Root struct {
 	Workflows map[string]Workflow
@@ -46,6 +48,17 @@ type Action struct {
 	Release Release
 	// The "resolved" version candidates (if any)
 	UpgradeCandidates UpgradeCandidates
+}
+
+// Repo returns the repository part (owner/repo) from the action name,
+// stripping any additional path components that may be present in workflow
+// file references.
+func (a Action) Repo() string {
+	parts := strings.Split(a.Name, "/")
+	if len(parts) >= 2 {
+		return parts[0] + "/" + parts[1]
+	}
+	return a.Name
 }
 
 // UpgradeCandidates capture possible upgrade versions.

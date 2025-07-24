@@ -149,7 +149,13 @@ func validatePattern(pattern string) error {
 
 // usesPattern is a regex that attempts to match "uses:" declarations in a
 // workflow yaml file.
-var usesPattern = regexp.MustCompile(`^\s*-?\s*uses:\s*([\w\-]+/[\w\-]+)@([\w\-\./]+)(?:\s*#.*)?$`)
+//
+// Yes, this regex is now hairy enough to definitely be in "now you have 2
+// problems" territory.
+//
+// Explore matches:
+// https://regex101.com/r/0gKnNw/2
+var usesPattern = regexp.MustCompile(`^\s*-?\s*uses:\s*([\w\-]+/[\w\-]+(?:/[\w\-\.]+)*(?:\.ya?ml)?)@([\w\-\./]+)(?:\s*#.*)?$`)
 
 func maybeParseAction(line string) Action {
 	matches := usesPattern.FindStringSubmatch(line)
