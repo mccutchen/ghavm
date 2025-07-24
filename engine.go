@@ -332,14 +332,14 @@ func (e *Engine) resolveStep(ctx context.Context, workflow Workflow, step *Step,
 	// 1. resolve the version ref (commit, branch, tag, etc) to a specific
 	// commit hash
 	e.phaseLog.Info(workflow, step, "resolving commit hash for ref %s", step.Action.Ref)
-	commit, err := e.gh.GetCommitHashForRef(ctx, step.Action.Name, step.Action.Ref)
+	commit, err := e.gh.GetCommitHashForRef(ctx, step.Action.Repo(), step.Action.Ref)
 	if err != nil {
 		return fmt.Errorf("failed to resolve commit hash for ref %s: %w", step.Action.Ref, err)
 	}
 
 	// 2a. attempt to find any semver tags pointing to the resolved commit hash.
 	e.phaseLog.Info(workflow, step, "resolving semver tags for commit hash %s", commit)
-	versions, err := e.gh.GetVersionTagsForCommitHash(ctx, step.Action.Name, commit)
+	versions, err := e.gh.GetVersionTagsForCommitHash(ctx, step.Action.Repo(), commit)
 	if err != nil {
 		return fmt.Errorf("failed to fetch version tags for resolved commit %s: %w", commit, err)
 	}
@@ -375,7 +375,7 @@ func (e *Engine) resolveStep(ctx context.Context, workflow Workflow, step *Step,
 	// current release.
 	if fetchUpgrades {
 		e.phaseLog.Info(workflow, step, "finding upgrade candidates for version %s", step.Action.Release.Version)
-		candidates, err := e.gh.GetUpgradeCandidates(ctx, step.Action.Name, step.Action.Release)
+		candidates, err := e.gh.GetUpgradeCandidates(ctx, step.Action.Repo(), step.Action.Release)
 		if err != nil {
 			e.phaseLog.Error(workflow, step, fmt.Errorf("failed to get upgrade candidates for version %s: %w", step.Action.Release.Version, err))
 		} else if candidates == (UpgradeCandidates{}) {

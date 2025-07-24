@@ -40,6 +40,36 @@ func TestMaybeParseAction(t *testing.T) {
 			},
 		},
 
+		// edge case `uses:` declarations
+		{
+			line: "uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v1.4.0",
+			want: Action{
+				Name: "slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml",
+				Ref:  "v1.4.0",
+			},
+		},
+		{
+			line: "uses: mccutchen/ghavm-test-repo/sub-workflow@v2.2.2",
+			want: Action{
+				Name: "mccutchen/ghavm-test-repo/sub-workflow",
+				Ref:  "v2.2.2",
+			},
+		},
+		{
+			line: "uses: owner/repo/.github/workflows/workflow.yaml@v1.0.0",
+			want: Action{
+				Name: "owner/repo/.github/workflows/workflow.yaml",
+				Ref:  "v1.0.0",
+			},
+		},
+		{
+			line: "uses: owner/repo/path/to/action@main",
+			want: Action{
+				Name: "owner/repo/path/to/action",
+				Ref:  "main",
+			},
+		},
+
 		// testing a variety of ref formats we need to support
 		{
 			line: "uses: owner/repo@abcd1234",
@@ -84,7 +114,18 @@ func TestMaybeParseAction(t *testing.T) {
 			want: Action{},
 		},
 		{
+			// malformed ref (two @ symbols)
 			line: "uses: owner/repo@v1.2.3@foo # malformed ref",
+			want: Action{},
+		},
+		{
+			// local workflow definitions
+			line: "uses: ./.github/actions/custom-action",
+			want: Action{},
+		},
+		{
+			// docker images
+			line: "uses: docker://mccutchen/ghavm-test-repo:2.2.2",
 			want: Action{},
 		},
 	}
@@ -199,6 +240,28 @@ func TestValidatePattern(t *testing.T) {
 				t.Fatal("expected error but got nil")
 			}
 			assert.Contains(t, err.Error(), tc.wantErr, "error message")
+		})
+	}
+}
+
+func TestActionRepo(t *testing.T) {
+	testCases := []struct {
+		name     string
+		expected string
+	}{
+		{"actions/checkout", "actions/checkout"},
+		{"slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml", "slsa-framework/slsa-github-generator"},
+		{"owner/repo/path/to/action", "owner/repo"},
+		{"owner/repo/.github/workflows/workflow.yaml", "owner/repo"},
+		{"single-part", "single-part"},
+		{"", ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			action := Action{Name: tc.name}
+			got := action.Repo()
+			assert.Equal(t, got, tc.expected, "incorrect repo extraction")
 		})
 	}
 }

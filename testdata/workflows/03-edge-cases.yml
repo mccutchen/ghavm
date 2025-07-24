@@ -38,3 +38,15 @@ jobs:
 
       - name: commit corresponding to annotated semver tag
         uses: mccutchen/ghavm-test-repo@3c867123aa53f955575f72c821d4323b632fd96f # v3.2.3
+
+      - name: workflow nested under a directory
+        uses: mccutchen/ghavm-test-repo/sub-workflow@v2.2.2
+
+      - name: path to remote workflow definition
+        uses: mccutchen/ghavm-test-repo/.github/workflows/sub-workflow.yml@v2.2.2
+
+      - name: local workflow definition are ignored
+        uses: ./.github/actions/custom-action
+
+      - name: docker images workflows are ignored
+        uses: docker://mccutchen/ghavm-test-repo:2.2.2

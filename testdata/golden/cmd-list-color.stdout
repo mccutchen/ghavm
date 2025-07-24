@@ -70,3 +70,11 @@ workflow [1m03-edge-cases.yml[22m
     current: 3c867123aa53f955575f72c821d4323b632fd96f @ v3.2.3
     compat:  [32m✓ already using latest compat version[0m
     latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo/sub-workflow@v2.2.2[22m versions:
+    current: c464581d8e7a16dab2029f7a34c81fe75f03a49d @ v2.2.2
+    compat:  fd663af41ca3473570136ee6ff8fb80adfae3565 @ v2.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
+  action [1mmccutchen/ghavm-test-repo/.github/workflows/sub-workflow.yml@v2.2.2[22m versions:
+    current: c464581d8e7a16dab2029f7a34c81fe75f03a49d @ v2.2.2
+    compat:  fd663af41ca3473570136ee6ff8fb80adfae3565 @ v2.2.3
+    latest:  75e35fafbce9720ebaf2c4e8bf1c4950260c35c3 @ v4.2.3
