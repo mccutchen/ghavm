@@ -5,6 +5,7 @@ TEST_ARGS     ?= -race -count=1 -timeout=60s
 DOCS_PORT     ?= :8080
 
 # 3rd party tools
+CMD_COSIGN      := go run github.com/sigstore/cosign/cmd/cosign@v2.5.3
 CMD_GOFUMPT     := go run mvdan.cc/gofumpt@v0.8.0
 CMD_GORELEASER  := go run github.com/goreleaser/goreleaser/v2@v2.11.0
 CMD_QUILL       := go run github.com/anchore/quill/cmd/quill@v0.5.1
@@ -105,3 +106,13 @@ release: clean
 
 release-notarize:
 	$(CMD_QUILL) sign-and-notarize $(DIST_DIR)/ghavm_darwin_all/ghavm
+
+# TAGS should be a space-separated list of image tags to sign (generally
+# provided by the docker/metadata-action step in release.yaml) and DIGEST
+# should be the digest of the image to which all of the tags point.
+#
+# Like the targets above, this step is generally run in the context of the
+# release.yaml GitHub Actions workflow.
+release-sign-images:
+	$(CMD_COSIGN) sign --yes $(foreach tag,$(TAGS),$(tag)@$(DIGEST))
+.PHONY: release-sign-images
