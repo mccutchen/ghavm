@@ -1,6 +1,7 @@
-package main
+package ghavm
 
 import (
+	"path"
 	"testing"
 
 	"github.com/mccutchen/ghavm/internal/testing/assert"
@@ -192,7 +193,7 @@ func TestScanFileFiltering(t *testing.T) {
 	for name, tc := range testCases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			workflow, err := scanFile("testdata/example.yaml", tc.opts)
+			workflow, err := scanFile(path.Join("testdata", "example.yaml"), tc.opts)
 			assert.NilError(t, err)
 
 			actualNames := make([]string, 0, len(workflow.Steps))
