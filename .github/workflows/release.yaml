@@ -72,9 +72,9 @@ jobs:
           # releases we run `make release`
           #
           # Note that we override the CMD_GORELEASER var to use the binary
-          # installed by the goreleaser/goreleaser-action above instead
-          # using the Makefile's default `go run ...` approach because it
-          # takes a long time to build the app.
+          # installed by the goreleaser/goreleaser-action step above instead
+          # of using the Makefile's default `go run ...` approach because it
+          # takes a long time to build goreleaser itself.
           make release${{ github.event_name == 'pull_request' && '-dry-run' || '' }} CMD_GORELEASER="goreleaser"
 
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
@@ -123,13 +123,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: "Run script: sign images with cosign"
+      - name: "Run script: make release-sign-images"
         env:
           DIGEST: ${{ steps.docker-build.outputs.digest }}
           TAGS: ${{ steps.docker-meta.outputs.tags }}
-        run: |
-          images=""
-          for tag in ${TAGS}; do
-            images+="${tag}@${DIGEST} "
-          done
-          cosign sign --yes ${images}
+        run:
+          # Note that we override the CMD_COSIGN var to use the binary
+          # installed by the sigstore/cosign-installer step above
+          make release-sign-images CMD_COSIGN="cosign"
