@@ -1,4 +1,6 @@
-.*
+.claude
+.codebook.toml
+.envrc
 *.out
 dist
 out
