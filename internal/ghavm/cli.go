@@ -1,3 +1,4 @@
+// Package ghavm implements GitHub Actions version management.
 package ghavm
 
 import (
@@ -14,11 +15,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// RunApp runs a cobra CLI app with the given args.
 func RunApp(app *cobra.Command, args []string) error {
 	app.SetArgs(args)
 	return app.Execute()
 }
 
+// NewApp creates the CLI for ghavm.
 func NewApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(string) string, versionInfo string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "ghavm",
@@ -27,7 +30,7 @@ func NewApp(stdin io.Reader, stdout io.Writer, stderr io.Writer, getenv func(str
 		SilenceUsage: true,
 
 		// Short-circuit handling of --version flag
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
 				fprintln(cmd.OutOrStdout(), versionInfo)
 				return nil

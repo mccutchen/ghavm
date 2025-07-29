@@ -18,6 +18,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	client := NewGitHubClient("token", nil)
 	if client.httpClient == nil {
 		t.Error("Expected HTTP client to be initialized")
@@ -322,7 +323,6 @@ func TestGetUpgradeCandidates(t *testing.T) {
 		},
 	}
 	for name, tc := range tests {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			client := newTestClient(t, tc.gqlEndpoints, nil)
@@ -518,7 +518,6 @@ func TestGetVersionTagsForHash(t *testing.T) {
 		},
 	}
 	for name, tc := range tests {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			client := newTestClient(t, tc.gqlEndpoints, nil)
@@ -627,7 +626,6 @@ func TestGetCommitHashForRef(t *testing.T) {
 		},
 	}
 	for name, tc := range tests {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			client := newTestClient(t, nil, tc.restEndpoints)
@@ -674,7 +672,6 @@ func TestValidateAuth(t *testing.T) {
 		},
 	}
 	for name, tc := range tests {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			client := newTestClient(t, nil, tc.restEndpoints)
@@ -725,8 +722,8 @@ func TestIsUpgradeCandidate(t *testing.T) {
 	}
 
 	for _, tc := range upgradeCases {
-		tc := tc
 		t.Run(fmt.Sprintf("isUpgradeCandidate(%s,%s)", tc.current, tc.candidate), func(t *testing.T) {
+			t.Parallel()
 			result := isUpgradeCandidate(tc.current, tc.candidate)
 			assert.Equal(t, result, tc.expected, "is upgrade candidate?")
 		})
@@ -757,8 +754,8 @@ func TestChooseNewestRelease(t *testing.T) {
 		},
 	}
 	for name, tc := range releaseCases {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			result := chooseNewestRelease(tc.a, tc.b)
 			assert.Equal(t, result, tc.expected, "choose newest release")
 		})
@@ -776,7 +773,7 @@ func TestChooseNewestRelease(t *testing.T) {
 // See [graphqlSig] and [restSig] for details.
 func newTestClient(t testing.TB, graphqlEndpoints map[string]httpResponse, restEndpoints map[string]httpResponse) *GitHubClient {
 	t.Helper()
-	const fakeAuthToken = "fake-auth-token"
+	const fakeAuthToken = "fake-auth-token" // #nosec G101
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, r.Header.Get("Authorization"), "Bearer "+fakeAuthToken, "incorrect Authorization header")
 		switch r.URL.Path {
