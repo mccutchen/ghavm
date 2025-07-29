@@ -11,14 +11,16 @@ name: release
   #   branches: [main]
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write
-  attestations: write
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -67,15 +69,15 @@ jobs:
           QUILL_NOTARY_KEY_ID: ${{ secrets.QUILL_NOTARY_KEY_ID }}
           QUILL_SIGN_P12: ${{ secrets.QUILL_SIGN_P12 }}
           QUILL_SIGN_PASSWORD: ${{ secrets.QUILL_SIGN_PASSWORD }}
-        run:
           # On pull requests, we run `make release-dry-run` and on actual
           # releases we run `make release`
-          #
+          RELEASE_TARGET: ${{ github.event_name == 'pull_request' && 'release-dry-run' || 'release' }}
+        run:
           # Note that we override the CMD_GORELEASER var to use the binary
           # installed by the goreleaser/goreleaser-action step above instead
           # of using the Makefile's default `go run ...` approach because it
           # takes a long time to build goreleaser itself.
-          make release${{ github.event_name == 'pull_request' && '-dry-run' || '' }} CMD_GORELEASER="goreleaser"
+          make "${RELEASE_TARGET}" CMD_GORELEASER="goreleaser"
 
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
