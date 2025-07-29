@@ -39,3 +39,5 @@ jobs:
       - uses: zizmorcore/zizmor-action@f52a838cfabf134edcbaa7c8b3677dde20045018 # v0.1.1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          persona: pedantic
