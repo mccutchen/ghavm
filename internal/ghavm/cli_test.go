@@ -80,7 +80,6 @@ func TestCLI(t *testing.T) {
 	}
 
 	for name, tc := range testCases {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			// use fake env for testing CLI errors to ensure we don't
 			// accidentally grab a real GITHUB_TOKEN or other env vars.

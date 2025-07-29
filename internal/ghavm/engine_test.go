@@ -69,7 +69,7 @@ func TestIntegrationTests(t *testing.T) {
 			assert.NilError(t, app.Execute())
 
 			goldenPath := filepath.Join("testdata", "golden", fmt.Sprintf("cmd-list%s.stdout", pathSuffix))
-			want, err := os.ReadFile(goldenPath)
+			want, err := os.ReadFile(goldenPath) // #nosec G304
 			assert.NilError(t, err)
 
 			if stdout.String() != string(want) {
@@ -123,7 +123,6 @@ func TestIntegrationTests(t *testing.T) {
 	}
 
 	for _, goldenDirName := range goldenDirs {
-		goldenDirName := goldenDirName
 		t.Run("golden/"+goldenDirName, func(t *testing.T) {
 			t.Parallel()
 
@@ -271,7 +270,6 @@ func TestTruncateToDisplayWidth(t *testing.T) {
 	}
 
 	for name, tc := range tests {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			result := truncateToDisplayWidth(tc.input, tc.width)
 			assert.Equal(t, result, tc.expected, "incorrect result")

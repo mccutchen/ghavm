@@ -131,7 +131,6 @@ func TestMaybeParseAction(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.line, func(t *testing.T) {
 			got := maybeParseAction(tc.line)
 			assert.Equal(t, got, tc.want, "incorrect result")
@@ -191,7 +190,6 @@ func TestScanFileFiltering(t *testing.T) {
 	}
 
 	for name, tc := range testCases {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			workflow, err := scanFile(path.Join("testdata", "example.yaml"), tc.opts)
 			assert.NilError(t, err)

@@ -73,7 +73,7 @@ func ScanWorkflows(filePaths []string, opts scanOpts) (Root, error) {
 }
 
 func scanFile(filePath string, opts scanOpts) (Workflow, error) {
-	f, err := os.Open(filePath)
+	f, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
 		return Workflow{}, fmt.Errorf("scanner: failed to open file %s: %w", filePath, err)
 	}
