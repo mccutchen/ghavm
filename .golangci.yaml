@@ -1,0 +1,17 @@
+version: "2"
+
+linters:
+  # https://golangci-lint.run/usage/linters/#enabled-by-default
+  default: standard
+
+  enable:
+  - bodyclose
+  - contextcheck
+  - copyloopvar
+  - gosec
+  - paralleltest
+  - revive
+
+formatters:
+  enable:
+    - gofumpt
