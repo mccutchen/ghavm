@@ -18,6 +18,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	client := NewGitHubClient("token", nil)
 	if client.httpClient == nil {
 		t.Error("Expected HTTP client to be initialized")
@@ -722,6 +723,7 @@ func TestIsUpgradeCandidate(t *testing.T) {
 
 	for _, tc := range upgradeCases {
 		t.Run(fmt.Sprintf("isUpgradeCandidate(%s,%s)", tc.current, tc.candidate), func(t *testing.T) {
+			t.Parallel()
 			result := isUpgradeCandidate(tc.current, tc.candidate)
 			assert.Equal(t, result, tc.expected, "is upgrade candidate?")
 		})
@@ -753,6 +755,7 @@ func TestChooseNewestRelease(t *testing.T) {
 	}
 	for name, tc := range releaseCases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			result := chooseNewestRelease(tc.a, tc.b)
 			assert.Equal(t, result, tc.expected, "choose newest release")
 		})

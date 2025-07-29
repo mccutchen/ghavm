@@ -8,6 +8,8 @@ import (
 )
 
 func TestCLI(t *testing.T) {
+	t.Parallel()
+
 	testCases := map[string]struct {
 		args       []string
 		env        map[string]string
@@ -81,6 +83,8 @@ func TestCLI(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			// use fake env for testing CLI errors to ensure we don't
 			// accidentally grab a real GITHUB_TOKEN or other env vars.
 			getenv := func(key string) string {

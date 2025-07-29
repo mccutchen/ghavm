@@ -8,6 +8,8 @@ import (
 )
 
 func TestMaybeParseAction(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		line string
 		want Action
@@ -132,6 +134,7 @@ func TestMaybeParseAction(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.line, func(t *testing.T) {
+			t.Parallel()
 			got := maybeParseAction(tc.line)
 			assert.Equal(t, got, tc.want, "incorrect result")
 		})
@@ -139,6 +142,8 @@ func TestMaybeParseAction(t *testing.T) {
 }
 
 func TestScanFileFiltering(t *testing.T) {
+	t.Parallel()
+
 	testCases := map[string]struct {
 		opts     scanOpts
 		expected []string
@@ -191,6 +196,8 @@ func TestScanFileFiltering(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			workflow, err := scanFile(path.Join("testdata", "example.yaml"), tc.opts)
 			assert.NilError(t, err)
 
@@ -205,6 +212,8 @@ func TestScanFileFiltering(t *testing.T) {
 }
 
 func TestValidatePattern(t *testing.T) {
+	t.Parallel()
+
 	validCases := []string{
 		"*",
 		"actions/*",
@@ -216,6 +225,7 @@ func TestValidatePattern(t *testing.T) {
 
 	for _, pattern := range validCases {
 		t.Run("valid/"+pattern, func(t *testing.T) {
+			t.Parallel()
 			err := validatePattern(pattern)
 			assert.NilError(t, err)
 		})
@@ -234,6 +244,7 @@ func TestValidatePattern(t *testing.T) {
 
 	for _, tc := range invalidCases {
 		t.Run("invalid/"+tc.pattern, func(t *testing.T) {
+			t.Parallel()
 			err := validatePattern(tc.pattern)
 			if err == nil {
 				t.Fatal("expected error but got nil")
@@ -244,6 +255,8 @@ func TestValidatePattern(t *testing.T) {
 }
 
 func TestActionRepo(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name     string
 		expected string
@@ -258,6 +271,7 @@ func TestActionRepo(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			action := Action{Name: tc.name}
 			got := action.Repo()
 			assert.Equal(t, got, tc.expected, "incorrect repo extraction")

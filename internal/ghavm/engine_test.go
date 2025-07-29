@@ -202,6 +202,8 @@ func TestNewEngine(t *testing.T) {
 }
 
 func TestTruncateToDisplayWidth(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		input    string
 		width    int
@@ -271,6 +273,7 @@ func TestTruncateToDisplayWidth(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			result := truncateToDisplayWidth(tc.input, tc.width)
 			assert.Equal(t, result, tc.expected, "incorrect result")
 		})
