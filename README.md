@@ -17,6 +17,11 @@ See [Motivations](#motivations) below for more information on the specific
 problem `ghavm` helps solve, and further reading on properly securing GitHub
 Actions workflows.
 
+> [!IMPORTANT]
+> **👉 Just use [suzuki-shunsuke/pinact][] instead 👈**<br>
+> This project wouldn't exist if I had managed to find `pinact` first, because
+> it does everything I need out of this kind of tool.
+
 
 ## Installation
 
@@ -212,6 +217,9 @@ party actions not owned by GitHub itself.
 
 There are a number of other tools offering similar functionality:
 
+- [suzuki-shunsuke/pinact][] is basically a better version of this project
+  (wish I had found it before I started!)
+
 - [mheap/pin-github-action][] inspired this project! It offers the same
   functionality as the `ghavm pin` command, but does not seem to offer the
   ability to then upgrade pinned versions over time.
@@ -219,9 +227,6 @@ There are a number of other tools offering similar functionality:
 - [dependabot][] has native support for managing GitHub Actions versions with
   the same kind of pinning that this project provides, and can be configured to
   automatically open pull requests to update those versions over time.
-
-  **Most users should probably consider dependabot instead of `ghavm` to
-  actually automate version-pinned security updates!**
 
 
 ## License
@@ -236,3 +241,4 @@ MIT
 [release]: https://github.com/mccutchen/ghavm/releases/latest
 [mheap/pin-github-action]: https://github.com/mheap/pin-github-action
 [dependabot]: https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories#github-actions
+[suzuki-shunsuke/pinact]: https://github.com/suzuki-shunsuke/pinact/

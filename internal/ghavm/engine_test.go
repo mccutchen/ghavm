@@ -150,7 +150,7 @@ func TestIntegrationTests(t *testing.T) {
 
 func diffDirs(t testing.TB, a, b string) string {
 	t.Helper()
-	cmd := exec.Command("diff", "-u", "-r", a, b)
+	cmd := exec.Command("diff", "-u", "-r", a, b) //nolint:gosec
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		// an exit code of 1 from `diff` is expected when the inputs differ
@@ -163,7 +163,7 @@ func diffDirs(t testing.TB, a, b string) string {
 
 func diffStrings(t testing.TB, a, b string) string {
 	bashCmd := `exec 3<<<"$1" 4<<<"$2"; diff -u --label want --label got /dev/fd/3 /dev/fd/4`
-	cmd := exec.Command("bash", "-c", bashCmd, "bash", a, b)
+	cmd := exec.Command("bash", "-c", bashCmd, "bash", a, b) //nolint:gosec
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
