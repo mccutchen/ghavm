@@ -1,5 +1,9 @@
 name: release
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 "on":
   release:
     types: [created]
@@ -18,10 +22,10 @@ jobs:
     name: release
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
+      contents: write # to publish the GitHub release
+      packages: write # to push to ghcr.io
+      id-token: write # for keyless signing via sigstore/cosign
+      attestations: write # to publish build provenance attestations
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
