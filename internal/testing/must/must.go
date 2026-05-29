@@ -14,7 +14,7 @@ import (
 func DoReq(t testing.TB, client *http.Client, req *http.Request) *http.Response {
 	t.Helper()
 	start := time.Now()
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint:gosec
 	if err != nil {
 		t.Fatalf("error making HTTP request: %s %s: %s", req.Method, req.URL, err)
 	}
