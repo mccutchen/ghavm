@@ -11,12 +11,13 @@ import (
 
 // Release information populated by goreleaser at build time
 var (
-	version = "dev"
-	commit  = "unknown"
+	version   = "dev"
+	commit    = "unknown"
+	buildDate = "unknown"
 )
 
 func main() {
-	versionInfo := fmt.Sprintf("ghavm version %s %s %s", version, commit, runtime.Version())
+	versionInfo := fmt.Sprintf("ghavm version %s %s %s (built %s)", version, commit, runtime.Version(), buildDate)
 	app := ghavm.NewApp(os.Stdin, os.Stdout, os.Stderr, os.Getenv, versionInfo)
 	if err := ghavm.RunApp(app, os.Args[1:]); err != nil {
 		os.Exit(1)

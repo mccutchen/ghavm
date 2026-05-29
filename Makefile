@@ -1,46 +1,46 @@
+# Built binaries will be placed here
+DIST_PATH  	  ?= dist
+
 # Default flags used by the test, testci, testcover targets
-COVERAGE_PATH ?= coverage.out
+COVERAGE_PATH ?= coverage.txt
 COVERAGE_ARGS ?= -covermode=atomic -coverprofile=$(COVERAGE_PATH)
-TEST_ARGS     ?= -race -count=1 -timeout=60s
-DOCS_PORT     ?= :8080
+TEST_ARGS     ?= -race
 
 # 3rd party tools
-CMD_COSIGN      := go run github.com/sigstore/cosign/cmd/cosign@v2.5.3
-CMD_GOFUMPT     := go run mvdan.cc/gofumpt@v0.8.0
-CMD_GORELEASER  := go run github.com/goreleaser/goreleaser/v2@v2.11.0
-CMD_QUILL       := go run github.com/anchore/quill/cmd/quill@v0.5.1
-CMD_REVIVE      := go run github.com/mgechev/revive@v1.9.0
-CMD_STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2025.1.1
-
-# Where built assets will be placed
-OUT_DIR  ?= out
-DIST_DIR ?= dist
+GOFUMPT     := go run mvdan.cc/gofumpt@v0.9.2
+GORELEASER  := go run github.com/goreleaser/goreleaser/v2@v2.15.2
+REFLEX      := go run github.com/cespare/reflex@v0.3.2
+REVIVE      := go run github.com/mgechev/revive@v1.15.0
+STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2026.1
 
 
 # =============================================================================
-# Build
+# build
 # =============================================================================
 build:
-	mkdir -p $(OUT_DIR)
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(OUT_DIR)/ghavm .
+	mkdir -p $(DIST_PATH)
+	GIT_COMMIT=$$(git describe --always --dirty 2>/dev/null || echo "unknown"); \
+	BUILD_DATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
+	CGO_ENABLED=0; \
+	go build -ldflags="-s -w -X main.commit=$$GIT_COMMIT -X main.buildDate=$$BUILD_DATE" -o $(DIST_PATH)/ghavm .
 .PHONY: build
 
 clean:
-	rm -rf $(OUT_DIR) $(DIST_DIR) $(COVERAGE_PATH)
+	rm -rf $(DIST_PATH) $(COVERAGE_PATH)
 .PHONY: clean
 
 
 # =============================================================================
-# Run (shortcut to quickly run against test data)
+# run locally (shortcut to quickly run against test data)
 # =============================================================================
 run: build
-	$(OUT_DIR)/ghavm list ./testdata/workflows
+	$(DIST_PATH)/ghavm list ./testdata/workflows
 .PHONY: run
 
 
-# ===========================================================================
-# Tests
-# ===========================================================================
+# =============================================================================
+# test
+# =============================================================================
 test:
 	go test $(TEST_ARGS) ./...
 .PHONY: test
@@ -58,20 +58,21 @@ testcover: testci
 
 test-reset-golden-fixtures: build
 	PATH="$(shell readlink -f $(OUT_DIR)):$$PATH" ./testdata/bin/reset-golden-fixtures
+.PHONY: test-reset-golden-fixtures
 
 
 # ===========================================================================
-# Linting/formatting
+# linting/formatting
 # ===========================================================================
 lint:
-	test -z "$$($(CMD_GOFUMPT) -d -e .)" || (echo "Error: gofmt failed"; $(CMD_GOFUMPT) -d -e . ; exit 1)
+	$(GOFUMPT) -d .
 	go vet ./...
-	$(CMD_REVIVE) -set_exit_status ./...
-	$(CMD_STATICCHECK) ./...
+	$(REVIVE) -set_exit_status ./...
+	$(STATICCHECK) ./...
 .PHONY: lint
 
 fmt:
-	$(CMD_GOFUMPT) -d -e -w .
+	$(GOFUMPT) -w .
 .PHONY: fmt
 
 
@@ -96,23 +97,10 @@ fmt:
 # [1]: https://github.com/anchore/quill/blob/main/README.md#usage
 # [2]: https://goreleaser.com/customization/notarize/
 # ===========================================================================
-release-dry-run: clean
-	$(CMD_GORELEASER) release --snapshot --clean --verbose
-.PHONY: release-dry-run
-
 release: clean
-	$(CMD_GORELEASER) release --clean
+	$(GORELEASER) release --clean --verbose
 .PHONY: release
 
-release-notarize:
-	$(CMD_QUILL) sign-and-notarize $(DIST_DIR)/ghavm_darwin_all/ghavm
-
-# TAGS should be a space-separated list of image tags to sign (generally
-# provided by the docker/metadata-action step in release.yaml) and DIGEST
-# should be the digest of the image to which all of the tags point.
-#
-# Like the targets above, this step is generally run in the context of the
-# release.yaml GitHub Actions workflow.
-release-sign-images:
-	$(CMD_COSIGN) sign --yes $(foreach tag,$(TAGS),$(tag)@$(DIGEST))
-.PHONY: release-sign-images
+release-dry-run: clean
+	$(GORELEASER) release --clean --verbose --snapshot
+.PHONY: release-dry-run
